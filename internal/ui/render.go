@@ -260,40 +260,84 @@ func (m Model) renderWeek(width, height int) string {
 		wtStyle.Render(fmt.Sprintf("%5s", domain.FormatDuration(weekTotal))) +
 		m.theme.Muted.Render(" / "+domain.FormatDuration(weekTarget)) + "\n\n")
 
-	// Worklogs for the selected day.
-	wls := m.currentDayWorklogs()
-	b.WriteString(m.theme.Muted.Render(fmt.Sprintf("Worklogs — %s", m.days[m.selectedDay].Date.Format("Mon 2 Jan"))) + "\n")
-	if len(wls) == 0 {
-		b.WriteString(m.theme.Muted.Render("  (none — press 'a' to add)"))
-		return b.String()
+	// Whole-week worklogs grouped by day. Build every row first (skipping empty
+	// days other than the selected one), then window the list so the selected
+	// worklog stays visible when the week does not fit.
+	headerLines := strings.Count(b.String(), "\n")
+
+	selStyle := func() lipgloss.Style {
+		if m.focused == panelWeek {
+			return m.theme.Selected
+		}
+		return m.theme.SelectedBlurred
 	}
-	for i, w := range wls {
-		key := m.issueKeyFor(w.IssueID)
 
-		timeStyle := m.theme.Accent
-		bodyStyle := m.theme.Text
-		prefix := "  "
-		if i == m.worklogCursor {
-			sel := m.theme.Selected
-			if m.focused != panelWeek {
-				sel = m.theme.SelectedBlurred
+	var wlLines []string
+	selLine := -1
+	for di, d := range m.days {
+		wls := d.Worklogs
+		if len(wls) == 0 && di != m.selectedDay {
+			continue
+		}
+		hdr := fmt.Sprintf("%s — %s", d.Date.Format("Mon 02"), domain.FormatDuration(d.TotalSeconds()))
+		if di == m.selectedDay {
+			wlLines = append(wlLines, selStyle().Render("› "+hdr))
+		} else {
+			wlLines = append(wlLines, "  "+m.theme.Muted.Render(hdr))
+		}
+		if len(wls) == 0 {
+			wlLines = append(wlLines, m.theme.Muted.Render("    (none — press 'a' to add)"))
+			continue
+		}
+		for wi, w := range wls {
+			key := m.issueKeyFor(w.IssueID)
+			timeStyle := m.theme.Accent
+			bodyStyle := m.theme.Text
+			prefix := "    "
+			if di == m.selectedDay && wi == m.worklogCursor {
+				sel := selStyle()
+				prefix = "  " + sel.Render("› ")
+				timeStyle, bodyStyle = sel, sel
+				selLine = len(wlLines)
 			}
-			prefix = sel.Render("› ")
-			timeStyle = sel
-			bodyStyle = sel
+			acct := m.theme.Muted.Render("[" + w.AccountKey + "]")
+			if !w.HasAccount() {
+				acct = m.theme.Error.Render("[NO ACCOUNT]")
+			}
+			body := truncate(domain.FormatDuration(w.TimeSpentSeconds)+" "+key, width-18)
+			wlLines = append(wlLines,
+				prefix+timeStyle.Render(worklogClockRange(w))+" "+bodyStyle.Render(body)+" "+acct)
 		}
+	}
 
-		acct := m.theme.Muted.Render("[" + w.AccountKey + "]")
-		if !w.HasAccount() {
-			acct = m.theme.Error.Render("[NO ACCOUNT]")
+	b.WriteString(m.theme.Muted.Render("Worklogs — this week") + "\n")
+
+	avail := height - headerLines - 1 // rows left for the worklog list
+	if avail < 1 {
+		avail = 1
+	}
+	hasScroll := len(wlLines) > avail
+	rows := avail
+	if hasScroll {
+		rows = avail - 1 // reserve a line for the scroll indicator
+		if rows < 1 {
+			rows = 1
 		}
-
-		body := truncate(domain.FormatDuration(w.TimeSpentSeconds)+" "+key, width-16)
-		line := prefix +
-			timeStyle.Render(worklogClockRange(w)) + " " +
-			bodyStyle.Render(body) + " " +
-			acct
-		b.WriteString(line + "\n")
+	}
+	anchor := selLine
+	if anchor < 0 {
+		anchor = 0
+	}
+	start := scrollStart(anchor, len(wlLines), rows)
+	end := start + rows
+	if end > len(wlLines) {
+		end = len(wlLines)
+	}
+	for i := start; i < end; i++ {
+		b.WriteString(wlLines[i] + "\n")
+	}
+	if hasScroll {
+		b.WriteString(m.theme.Muted.Render(fmt.Sprintf("  — %d above, %d below —", start, len(wlLines)-end)))
 	}
 	return strings.TrimRight(b.String(), "\n")
 }

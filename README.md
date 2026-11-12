@@ -45,9 +45,10 @@ gauge, and a last-synced indicator. Below it the screen is two columns:
     hidden above/below.
   - *Details:* the selected issue (or the selected worklog when the Week panel
     is focused).
-- **Right column — Week:** worklogs per day, totals per day/week against a
-  target (default 8h/day). Days at or above target are green, below target
-  yellow.
+- **Right column — Week:** a per-day gauge against the target (default 8h/day,
+  green at/above, pink below, with the over/under), the week total, and the
+  whole week's worklogs grouped by day. `h`/`l` selects the day, `j`/`k` moves
+  within the selected day's worklogs.
 - **Bottom — Status bar:** keybindings, errors and confirmations.
 
 ## Install

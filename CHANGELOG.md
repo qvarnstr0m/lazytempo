@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The form also resizes with the terminal window.
 
 ### Added
+- The Week panel now lists the whole week's worklogs grouped by day, not just
+  the selected day. The selected day and worklog stay highlighted, empty days
+  are omitted (except the selected one), and the list scrolls to keep the
+  selected worklog visible. `h`/`l` still picks the day and `j`/`k` moves within
+  it.
 - Per-day gauges in the Week panel: each weekday shows a progress bar against
   the daily target with its over/under (`+15m`, `-1h`, `✓`), weekends show a
   neutral row, and the week total has a matching gauge.
