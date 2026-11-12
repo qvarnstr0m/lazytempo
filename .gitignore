@@ -1,0 +1,17 @@
+# Binaries
+/lazytempo
+/dist/
+*.exe
+*.test
+*.out
+
+# Go
+/vendor/
+
+# Local config / cache that might be created during manual testing
+*.local.toml
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
