@@ -28,7 +28,7 @@ func TestSearchDownFocusesList(t *testing.T) {
 		{Type: tea.KeyTab},
 		{Type: tea.KeyEnter},
 	} {
-		m := searchingModel("core")
+		m := searchingModel("abc")
 		res, _ := m.updateSearch(key)
 		mm := res.(Model)
 		if mm.searching {
@@ -37,7 +37,7 @@ func TestSearchDownFocusesList(t *testing.T) {
 		if mm.search.Focused() {
 			t.Errorf("%v: expected search input blurred", key)
 		}
-		if mm.search.Value() != "core" {
+		if mm.search.Value() != "abc" {
 			t.Errorf("%v: filter should be kept, got %q", key, mm.search.Value())
 		}
 	}
@@ -46,7 +46,7 @@ func TestSearchDownFocusesList(t *testing.T) {
 func TestUpAtTopReturnsToSearch(t *testing.T) {
 	// In a filtered list, pressing up on the top issue returns to the search box.
 	ti := textinput.New()
-	ti.SetValue("core")
+	ti.SetValue("abc")
 	m := Model{search: ti, searching: false, focused: panelIssues,
 		issues: sampleIssues(), issueCursor: 0, keys: DefaultKeyMap()}
 
