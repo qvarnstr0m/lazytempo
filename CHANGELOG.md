@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Panel content is now clipped to its box width (ANSI-aware) as well as its
+  height, so long issue summaries are truncated with `…` instead of wrapping.
+  Previously, on a small window, wrapped lines made a panel taller than its box
+  and pushed the whole frame off the top of the terminal, so the issue and
+  worklog panels appeared stuck showing only their bottom rows regardless of
+  scrolling. The status bar is likewise clipped so it can't wrap.
 - All panel text now uses the theme palette instead of falling through to the
   terminal's default foreground (e.g. day labels, week total, worklog rows and
   detail values); worklog start–end times use the pink accent.

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"lazytempo/internal/domain"
 )
@@ -63,14 +64,18 @@ func (m Model) renderPanels(height int) string {
 		weekInnerH = 1
 	}
 
+	// Text width inside a box excludes its horizontal padding (1 col each side).
+	leftTextW := leftW - 2
+	rightTextW := rightW - 2
+
 	issues := m.theme.panelStyle(m.focused == panelIssues, leftW, issuesInnerH).
-		Render(clipLines(m.renderIssues(leftW, issuesInnerH), issuesInnerH))
+		Render(clipBox(m.renderIssues(leftTextW, issuesInnerH), leftTextW, issuesInnerH))
 	details := m.theme.panelStyle(m.focused == panelDetails, leftW, detailsInnerH).
-		Render(clipLines(m.renderDetails(leftW, detailsInnerH), detailsInnerH))
+		Render(clipBox(m.renderDetails(leftTextW, detailsInnerH), leftTextW, detailsInnerH))
 	leftCol := lipgloss.JoinVertical(lipgloss.Left, issues, details)
 
 	week := m.theme.panelStyle(m.focused == panelWeek, rightW, weekInnerH).
-		Render(clipLines(m.renderWeek(rightW, weekInnerH), weekInnerH))
+		Render(clipBox(m.renderWeek(rightTextW, weekInnerH), rightTextW, weekInnerH))
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftCol, week)
 }
@@ -82,17 +87,28 @@ func clampW(w int) int {
 	return w
 }
 
-// clipLines keeps at most max lines of s so panel content never overflows its
-// box (which would break the layout).
-func clipLines(s string, max int) string {
-	if max < 1 {
-		max = 1
+// clipBox constrains panel content to its box: each line is truncated (ANSI
+// aware, so styling is preserved) to width display columns so it never wraps,
+// and at most height lines are kept. Without this, a line wider than the box
+// would wrap into extra rows, making the box taller than intended and pushing
+// the whole frame off the top of the terminal.
+func clipBox(s string, width, height int) string {
+	if width < 1 {
+		width = 1
+	}
+	if height < 1 {
+		height = 1
 	}
 	lines := strings.Split(s, "\n")
-	if len(lines) <= max {
-		return s
+	if len(lines) > height {
+		lines = lines[:height]
 	}
-	return strings.Join(lines[:max], "\n")
+	for i, l := range lines {
+		if ansi.StringWidth(l) > width {
+			lines[i] = ansi.Truncate(l, width, "")
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // renderIssues renders the left "My issues" panel.
@@ -347,8 +363,10 @@ func (m Model) renderStatusBar() string {
 		status = m.theme.Success.Render(status)
 	}
 
-	bar := lipgloss.NewStyle().Width(m.width).Render(shortHelp)
-	statusLine := lipgloss.NewStyle().Width(m.width).Render(status)
+	// Clip to a single line each so a narrow terminal can't wrap the status bar
+	// (which would change its height and shift the layout).
+	bar := clipBox(shortHelp, m.width, 1)
+	statusLine := clipBox(status, m.width, 1)
 	return lipgloss.JoinVertical(lipgloss.Left, statusLine, bar)
 }
 
