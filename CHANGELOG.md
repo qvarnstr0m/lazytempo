@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- All panel text now uses the theme palette instead of falling through to the
+  terminal's default foreground (e.g. day labels, week total, worklog rows and
+  detail values); worklog start–end times use the pink accent.
 - The worklog form (create/edit) now sizes itself to the popup box, so the
   description and other fields use the full width instead of wrapping early.
   The form also resizes with the terminal window.
