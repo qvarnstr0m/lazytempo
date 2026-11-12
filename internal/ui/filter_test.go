@@ -144,6 +144,31 @@ func TestWeekWorklogCrossDayNav(t *testing.T) {
 	}
 }
 
+func TestWeekJKReversed(t *testing.T) {
+	rune_ := func(m Model, r rune) Model {
+		res, _ := m.handleWeekKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		return res.(Model)
+	}
+	m := weekNavModel() // Mon has 2 worklogs
+	m.selectedDay, m.worklogCursor = 0, 0
+
+	// k moves down within the day.
+	mm := rune_(m, 'k')
+	if mm.worklogCursor != 1 {
+		t.Fatalf("k -> cursor %d, want 1 (down)", mm.worklogCursor)
+	}
+	// j moves back up.
+	mm = rune_(mm, 'j')
+	if mm.worklogCursor != 0 {
+		t.Fatalf("j -> cursor %d, want 0 (up)", mm.worklogCursor)
+	}
+	// Arrow keys keep their usual direction: down advances.
+	mm = weekKey(m, tea.KeyDown)
+	if mm.worklogCursor != 1 {
+		t.Errorf("down arrow -> cursor %d, want 1", mm.worklogCursor)
+	}
+}
+
 func TestWeekWorklogCrossWeek(t *testing.T) {
 	m := weekNavModel()
 	start := m.weekStart

@@ -425,35 +425,51 @@ func (m Model) handleIssuesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// weekMoveDown advances the worklog cursor: within the day, then into the next
+// day's first worklog, then into the next week's first worklog.
+func (m Model) weekMoveDown() (tea.Model, tea.Cmd) {
+	if n := len(m.currentDayWorklogs()); n > 0 && m.worklogCursor < n-1 {
+		m.worklogCursor++
+		return m, nil
+	}
+	if nd := m.nextDayWithWorklogs(m.selectedDay); nd >= 0 {
+		m.selectedDay = nd
+		m.worklogCursor = 0
+		return m, nil
+	}
+	return m.crossWeek(1, selectFirst)
+}
+
+// weekMoveUp retreats the worklog cursor: within the day, then into the previous
+// day's last worklog, then into the previous week's last worklog.
+func (m Model) weekMoveUp() (tea.Model, tea.Cmd) {
+	if m.worklogCursor > 0 {
+		m.worklogCursor--
+		return m, nil
+	}
+	if pd := m.prevDayWithWorklogs(m.selectedDay); pd >= 0 {
+		m.selectedDay = pd
+		m.worklogCursor = len(m.days[pd].Worklogs) - 1
+		return m, nil
+	}
+	return m.crossWeek(-1, selectLast)
+}
+
 func (m Model) handleWeekKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// In the worklog list j and k are reversed from the issue list: j moves up,
+	// k moves down (the arrow keys keep their usual direction).
+	switch msg.String() {
+	case "j":
+		return m.weekMoveUp()
+	case "k":
+		return m.weekMoveDown()
+	}
+
 	switch {
-	case key.Matches(msg, m.keys.Down):
-		// Move down within the day; at the last worklog continue into the next
-		// day's first, and past the end of the week into the next week's first.
-		if n := len(m.currentDayWorklogs()); n > 0 && m.worklogCursor < n-1 {
-			m.worklogCursor++
-			return m, nil
-		}
-		if nd := m.nextDayWithWorklogs(m.selectedDay); nd >= 0 {
-			m.selectedDay = nd
-			m.worklogCursor = 0
-			return m, nil
-		}
-		return m.crossWeek(1, selectFirst)
-	case key.Matches(msg, m.keys.Up):
-		// Move up within the day; at the first worklog continue into the previous
-		// day's last, and before the start of the week into the previous week's
-		// last.
-		if m.worklogCursor > 0 {
-			m.worklogCursor--
-			return m, nil
-		}
-		if pd := m.prevDayWithWorklogs(m.selectedDay); pd >= 0 {
-			m.selectedDay = pd
-			m.worklogCursor = len(m.days[pd].Worklogs) - 1
-			return m, nil
-		}
-		return m.crossWeek(-1, selectLast)
+	case key.Matches(msg, m.keys.Down): // down arrow
+		return m.weekMoveDown()
+	case key.Matches(msg, m.keys.Up): // up arrow
+		return m.weekMoveUp()
 	case key.Matches(msg, m.keys.NextDay):
 		if m.selectedDay < 6 {
 			m.selectedDay++
