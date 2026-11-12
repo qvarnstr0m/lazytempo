@@ -3,8 +3,34 @@ package ui
 import (
 	"testing"
 
+	"github.com/charmbracelet/bubbles/textinput"
+
 	"lazytempo/internal/domain"
 )
+
+func TestResumeSearchIfFiltered(t *testing.T) {
+	m := &Model{search: textinput.New(), focused: panelIssues}
+
+	// No query: nothing happens.
+	if cmd := m.resumeSearchIfFiltered(); cmd != nil || m.searching {
+		t.Fatal("should not resume search when query is empty")
+	}
+
+	// Active query, returned to Issues panel, not currently searching: re-focus.
+	m.search.SetValue("password")
+	m.searching = false
+	m.resumeSearchIfFiltered()
+	if !m.searching || !m.search.Focused() {
+		t.Error("expected search to be re-focused on return to Issues panel")
+	}
+
+	// Not on the Issues panel: do not steal focus.
+	m2 := &Model{search: textinput.New(), focused: panelWeek}
+	m2.search.SetValue("password")
+	if cmd := m2.resumeSearchIfFiltered(); cmd != nil || m2.searching {
+		t.Error("should not resume search when another panel is focused")
+	}
+}
 
 func sampleIssues() []domain.Issue {
 	return []domain.Issue{

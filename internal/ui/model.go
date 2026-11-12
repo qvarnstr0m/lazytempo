@@ -289,10 +289,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, m.keys.NextPanel):
 		m.focused = (m.focused + 1) % panelCount
-		return m, m.ensureLinksForSelectedIssue()
+		return m, tea.Batch(m.ensureLinksForSelectedIssue(), m.resumeSearchIfFiltered())
 	case key.Matches(msg, m.keys.Panel1):
 		m.focused = panelIssues
-		return m, nil
+		return m, m.resumeSearchIfFiltered()
 	case key.Matches(msg, m.keys.Panel2):
 		m.focused = panelWeek
 		return m, nil
@@ -400,6 +400,18 @@ func (m Model) handleWeekKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// resumeSearchIfFiltered re-focuses the search input when returning to the
+// Issues panel while a filter is still active, so the query can be edited or
+// cleared immediately without pressing "/" again.
+func (m *Model) resumeSearchIfFiltered() tea.Cmd {
+	if m.focused == panelIssues && !m.searching && m.search.Value() != "" {
+		m.searching = true
+		m.search.Focus()
+		return textinput.Blink
+	}
+	return nil
+}
+
 func (m Model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
@@ -446,7 +458,7 @@ func (m Model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if k, ok := msg.(tea.KeyMsg); ok && k.String() == "esc" {
 		m.form = nil
 		m.setStatus("cancelled")
-		return m, nil
+		return m, m.resumeSearchIfFiltered()
 	}
 	form, cmd := m.form.form.Update(msg)
 	if f, ok := form.(*huh.Form); ok {
@@ -462,11 +474,11 @@ func (m Model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		in.AuthorAccountID = m.accountID
-		return m, m.startLoad(m.svc.SaveWorklog(editID, in))
+		return m, tea.Batch(m.startLoad(m.svc.SaveWorklog(editID, in)), m.resumeSearchIfFiltered())
 	case huh.StateAborted:
 		m.form = nil
 		m.setStatus("cancelled")
-		return m, nil
+		return m, m.resumeSearchIfFiltered()
 	}
 	return m, cmd
 }
