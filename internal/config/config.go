@@ -34,6 +34,9 @@ type Config struct {
 	// Set false for Tempo instances that don't use accounts, or to allow logging
 	// before a relevant account exists.
 	RequireAccount bool `toml:"require_account"`
+	// TimeFormat controls how clock times are shown and entered: "eu" (24-hour,
+	// e.g. 16:05, the default) or "us" (12-hour, e.g. 4:05 PM).
+	TimeFormat string `toml:"time_format"`
 }
 
 // defaultJQL lists issues you are involved with: assigned to you, logged time
@@ -46,6 +49,7 @@ func Default() Config {
 		MyIssuesJQL:       defaultJQL,
 		TargetHoursPerDay: 8,
 		RequireAccount:    true,
+		TimeFormat:        "eu",
 	}
 }
 
@@ -107,6 +111,14 @@ func (c *Config) applyEnv() {
 			c.RequireAccount = b
 		}
 	}
+	if v := os.Getenv("LAZYTEMPO_TIME_FORMAT"); v != "" {
+		c.TimeFormat = v
+	}
+}
+
+// Hour12 reports whether clock times should use 12-hour (US) format.
+func (c Config) Hour12() bool {
+	return strings.EqualFold(c.TimeFormat, "us")
 }
 
 func (c *Config) normalize() {
@@ -116,6 +128,12 @@ func (c *Config) normalize() {
 	}
 	if c.TargetHoursPerDay <= 0 {
 		c.TargetHoursPerDay = 8
+	}
+	switch strings.ToLower(strings.TrimSpace(c.TimeFormat)) {
+	case "us":
+		c.TimeFormat = "us"
+	default:
+		c.TimeFormat = "eu"
 	}
 }
 
@@ -186,5 +204,9 @@ tempo_api_token = "your-tempo-api-token"
 # Every worklog must have a Tempo account (default: true). Set false for Tempo
 # instances that don't use accounts, or to log before a relevant account exists.
 # require_account = true
+
+# Clock time display/entry: "eu" (24-hour, e.g. 16:05, default) or "us" (12-hour,
+# e.g. 4:05 PM). Worklogs are stored in 24-hour time regardless.
+# time_format = "eu"
 `
 }

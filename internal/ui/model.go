@@ -702,7 +702,7 @@ func (m *Model) openPendingForm() tea.Cmd {
 	defaultDate := m.weekStart.AddDate(0, 0, m.selectedDay)
 	now := time.Now()
 	defaultStart := domain.RoundClock(now.Hour()*60+now.Minute(), clockStepMinutes)
-	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, defaultDate, defaultStart, m.cfg.RequireAccount)
+	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, defaultDate, defaultStart, m.cfg.RequireAccount, m.cfg.Hour12())
 	m.form.form = m.form.form.WithWidth(formContentWidth(m.width)).WithHeight(formContentHeight(m.height))
 	return m.form.form.Init()
 }

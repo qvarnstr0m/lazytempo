@@ -43,7 +43,7 @@ type worklogForm struct {
 // key (may be empty). existing is non-nil when editing. defaultStart is the
 // preselected start time ("HH:MM") for a new worklog; the end defaults to one
 // hour later (clamped to the end of the day).
-func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect string, existing *domain.Worklog, defaultDate time.Time, defaultStart string, requireAccount bool) *worklogForm {
+func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect string, existing *domain.Worklog, defaultDate time.Time, defaultStart string, requireAccount, hour12 bool) *worklogForm {
 	// Default to the given start and one hour later, both snapped to the
 	// dropdown grid (a Select cannot display a value absent from its options).
 	start := snapToStep(defaultStart)
@@ -95,7 +95,7 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		accountOptions = append(accountOptions, huh.NewOption(fmt.Sprintf("%s (%s)", label, a.Key), a.Key))
 	}
 
-	clockOptions := clockSelectOptions()
+	clockOptions := clockSelectOptions(hour12)
 
 	accountTitle := "Account (required)"
 	accountDesc := "Every worklog must have a Tempo account."
@@ -168,12 +168,14 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 	return f
 }
 
-// clockSelectOptions builds the 5-minute dropdown options once.
-func clockSelectOptions() []huh.Option[string] {
-	labels := domain.TimeOptions(clockStepMinutes)
-	opts := make([]huh.Option[string], 0, len(labels))
-	for _, l := range labels {
-		opts = append(opts, huh.NewOption(l, l))
+// clockSelectOptions builds the 5-minute dropdown options. The option value is
+// always the canonical 24-hour "HH:MM"; only the displayed label follows the
+// hour12 (US) / 24-hour (EU) preference.
+func clockSelectOptions(hour12 bool) []huh.Option[string] {
+	values := domain.TimeOptions(clockStepMinutes)
+	opts := make([]huh.Option[string], 0, len(values))
+	for _, v := range values {
+		opts = append(opts, huh.NewOption(domain.FormatClockDisplay(v, hour12), v))
 	}
 	return opts
 }

@@ -98,6 +98,7 @@ Environment overrides:
 | `LAZYTEMPO_TEMPO_API_TOKEN` | `tempo_api_token` |
 | `LAZYTEMPO_MY_ISSUES_JQL` | `my_issues_jql` |
 | `LAZYTEMPO_REQUIRE_ACCOUNT` | `require_account` |
+| `LAZYTEMPO_TIME_FORMAT` | `time_format` |
 
 ### Getting tokens
 
@@ -151,10 +152,12 @@ Jira`). You can log time against those results like any other issue.
 ## Time input
 
 The worklog form records a **start** and **end** time via dropdowns in
-5-minute steps, 24-hour European format (e.g. `16:05`); the duration is derived
-from the range (end must be after start). A new worklog defaults the start to
-the current time rounded to the nearest 5 minutes and the end to one hour later.
-Type in a dropdown to filter it (e.g. `16:0` jumps to `16:00`, `16:05`…). The
+5-minute steps; the duration is derived from the range (end must be after
+start). Times display and are entered in the configured `time_format`: `eu`
+(24-hour, e.g. `16:05`, the default) or `us` (12-hour, e.g. `4:05 PM`) —
+worklogs are stored in 24-hour time either way. A new worklog defaults the start
+to the current time rounded to the nearest 5 minutes and the end to one hour
+later. Type in a dropdown to filter it (e.g. `16:0` / `4:0`). The
 date defaults to the day selected in the week view, and the week view shows each
 worklog as its `start–end` range.
 

@@ -41,6 +41,28 @@ func TestSecondsBetween(t *testing.T) {
 	}
 }
 
+func TestFormatClockDisplay(t *testing.T) {
+	eu := map[string]string{"00:00": "00:00", "09:30": "09:30", "16:05": "16:05", "23:59": "23:59"}
+	for in, want := range eu {
+		if got := FormatClockDisplay(in, false); got != want {
+			t.Errorf("EU FormatClockDisplay(%q) = %q, want %q", in, got, want)
+		}
+	}
+	us := map[string]string{
+		"00:00": "12:00 AM",
+		"09:30": "9:30 AM",
+		"12:00": "12:00 PM",
+		"13:05": "1:05 PM",
+		"16:05": "4:05 PM",
+		"23:59": "11:59 PM",
+	}
+	for in, want := range us {
+		if got := FormatClockDisplay(in, true); got != want {
+			t.Errorf("US FormatClockDisplay(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestRoundClock(t *testing.T) {
 	cases := map[int]string{
 		16*60 + 3:  "16:05", // 16:03 -> nearest is 16:05

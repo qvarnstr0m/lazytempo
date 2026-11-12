@@ -29,6 +29,36 @@ func formatClock(minutesOfDay int) string {
 	return fmt.Sprintf("%02d:%02d", h, m)
 }
 
+// FormatClockDisplay renders a canonical "HH:MM" (24-hour) clock for display.
+// hour12 selects 12-hour US style ("4:05 PM") over 24-hour EU style ("16:05").
+// On a parse failure it returns the input unchanged.
+func FormatClockDisplay(hhmm string, hour12 bool) string {
+	m, err := ParseClock(hhmm)
+	if err != nil {
+		return hhmm
+	}
+	return formatClockDisplay(m, hour12)
+}
+
+func formatClockDisplay(minutesOfDay int, hour12 bool) string {
+	h := minutesOfDay / 60
+	m := minutesOfDay % 60
+	if !hour12 {
+		return fmt.Sprintf("%02d:%02d", h, m)
+	}
+	ampm := "AM"
+	if h >= 12 {
+		ampm = "PM"
+	}
+	hh := h
+	if h == 0 {
+		hh = 12
+	} else if h > 12 {
+		hh = h - 12
+	}
+	return fmt.Sprintf("%d:%02d %s", hh, m, ampm)
+}
+
 // ParseClock parses an "HH:MM" 24-hour time into minutes since midnight.
 func ParseClock(s string) (int, error) {
 	s = strings.TrimSpace(s)

@@ -331,7 +331,7 @@ func (m Model) renderWeek(width, height int) string {
 			}
 			body := truncate(domain.FormatDuration(w.TimeSpentSeconds)+" "+key, width-18)
 			wlLines = append(wlLines,
-				prefix+timeStyle.Render(worklogClockRange(w))+" "+bodyStyle.Render(body)+" "+acct)
+				prefix+timeStyle.Render(m.worklogClockRange(w))+" "+bodyStyle.Render(body)+" "+acct)
 		}
 	}
 
@@ -395,7 +395,7 @@ func (m Model) renderDetails(width, height int) string {
 
 func (m Model) writeWorklogDetails(b *strings.Builder, w domain.Worklog, width int) {
 	b.WriteString(m.theme.Accent.Render(m.issueKeyFor(w.IssueID)) + "\n")
-	b.WriteString(m.theme.Muted.Render("When:    ") + m.theme.Accent.Render(worklogClockRange(w)) + "\n")
+	b.WriteString(m.theme.Muted.Render("When:    ") + m.theme.Accent.Render(m.worklogClockRange(w)) + "\n")
 	b.WriteString(m.theme.Muted.Render("Time:    ") + m.theme.Text.Render(domain.FormatDuration(w.TimeSpentSeconds)) + "\n")
 	b.WriteString(m.theme.Muted.Render("Date:    ") + m.theme.Text.Render(w.StartDate) + "\n")
 	switch {
@@ -571,9 +571,10 @@ func (m Model) renderStatusBar() string {
 	return lipgloss.JoinVertical(lipgloss.Left, statusLine, bar)
 }
 
-// worklogClockRange renders a worklog's time span as "16:05–17:35". When the
-// start time is unknown it shows just the duration bounds it can ("–").
-func worklogClockRange(w domain.Worklog) string {
+// worklogClockRange renders a worklog's time span (e.g. "16:05–17:35", or
+// "4:05 PM–5:35 PM" in US format). When the start time is unknown it shows a
+// placeholder.
+func (m Model) worklogClockRange(w domain.Worklog) string {
 	start := ""
 	if len(w.StartTime) >= 5 {
 		if _, err := domain.ParseClock(w.StartTime[:5]); err == nil {
@@ -584,7 +585,8 @@ func worklogClockRange(w domain.Worklog) string {
 		return "--:--"
 	}
 	end := domain.AddClock(start, w.TimeSpentSeconds/60)
-	return start + "–" + end
+	h12 := m.cfg.Hour12()
+	return domain.FormatClockDisplay(start, h12) + "–" + domain.FormatClockDisplay(end, h12)
 }
 
 // issueKeyFor resolves an issue id to a human key using the loaded issues,
