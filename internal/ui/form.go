@@ -13,6 +13,10 @@ import (
 // clockStepMinutes is the granularity of the start/end time dropdowns.
 const clockStepMinutes = 5
 
+// accountSelectHeight is the number of account rows visible before the dropdown
+// scrolls.
+const accountSelectHeight = 8
+
 // worklogForm wraps a Huh form for creating or editing a worklog. The account
 // field is mandatory: the form cannot be submitted without a selected account.
 //
@@ -99,13 +103,18 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		accountTitle = "Account (optional)"
 		accountDesc = "Choose an account, or (no account)."
 	}
+	// When the list is longer than the viewport, signal that there are more rows
+	// (Huh's Select has no built-in above/below indicator).
+	if len(accountOptions) > accountSelectHeight {
+		accountDesc = fmt.Sprintf("%d accounts — ↑/↓ to scroll, type to filter", len(accountOptions))
+	}
 	accountField := huh.NewSelect[string]().
 		Key("account").
 		Title(accountTitle).
 		Description(accountDesc).
 		Options(accountOptions...).
 		Filtering(true).
-		Height(8).
+		Height(accountSelectHeight).
 		Value(&f.accountKey).
 		Validate(func(s string) error {
 			if requireAccount && s == "" {
