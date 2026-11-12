@@ -221,3 +221,8 @@ start/stop timer, "fill the day" to target, copy yesterday, and rounding.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+This project depends on third-party Go modules, all under permissive licenses
+(MIT, BSD, ISC, Apache-2.0). Their license texts are collected in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); include that file with any
+binary release.
