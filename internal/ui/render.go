@@ -218,11 +218,30 @@ func (m Model) renderForm(height int) string {
 	if m.form.editID > 0 {
 		title = "Edit worklog"
 	}
-	header := m.theme.TitleFocused.Render(fmt.Sprintf("%s — %s %s", title, m.form.issue.Key, m.form.issue.Summary))
+	boxW := formBoxWidth(m.width)
+	header := truncate(fmt.Sprintf("%s — %s %s", title, m.form.issue.Key, m.form.issue.Summary), boxW-4)
 	body := m.form.form.View()
-	content := header + "\n\n" + body
-	box := m.theme.PanelFocused.Width(minInt(m.width-2, 70)).Render(content)
+	content := m.theme.TitleFocused.Render(header) + "\n\n" + body
+	box := m.theme.PanelFocused.Width(boxW).Render(content)
 	return lipgloss.Place(m.width, height, lipgloss.Center, lipgloss.Center, box)
+}
+
+// formBoxWidth is the outer width of the worklog form box.
+func formBoxWidth(total int) int {
+	w := total - 4
+	if w > 72 {
+		w = 72
+	}
+	if w < 24 {
+		w = 24
+	}
+	return w
+}
+
+// formContentWidth is the width available to the form's fields inside the box
+// (box minus the rounded border and horizontal padding).
+func formContentWidth(total int) int {
+	return formBoxWidth(total) - 4
 }
 
 // renderFullHelp renders the full keybinding help.

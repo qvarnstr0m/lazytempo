@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- The worklog form (create/edit) now sizes itself to the popup box, so the
+  description and other fields use the full width instead of wrapping early.
+  The form also resizes with the terminal window.
+
 ### Changed
 - The worklog form now records start and end time via 5-minute dropdowns in
   24-hour European format (e.g. 16:05) instead of a free-text duration; the time
