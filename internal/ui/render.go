@@ -196,9 +196,6 @@ func (m Model) renderIssues(width, height int) string {
 // day's worklogs.
 func (m Model) renderWeek(width, height int) string {
 	var b strings.Builder
-	title := fmt.Sprintf("Week of %s", m.weekStart.Format("Jan 2"))
-	b.WriteString(m.theme.title(m.focused == panelWeek, title))
-	b.WriteString("\n")
 
 	target := m.cfg.TargetSecondsPerDay()
 	const gaugeCells = 12
@@ -315,7 +312,7 @@ func (m Model) renderWeek(width, height int) string {
 	if m.weekStart.Equal(weekStart(time.Now())) {
 		wlTitle = fmt.Sprintf("Worklogs — This week (%d)", wk)
 	}
-	b.WriteString(m.theme.Muted.Render(wlTitle) + "\n")
+	b.WriteString(m.theme.title(m.focused == panelWeek, wlTitle) + "\n")
 
 	avail := height - headerLines - 1 // rows left for the worklog list
 	if avail < 1 {
