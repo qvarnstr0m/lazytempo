@@ -439,15 +439,9 @@ func (m Model) renderHeader() string {
 	if m.userName != "" {
 		parts = append(parts, m.theme.Accent.Render(m.userName))
 	}
-	parts = append(parts, m.theme.Text.Render(m.weekLabel()))
-
-	total := weekTotalSeconds(m.days)
-	target := m.cfg.TargetSecondsPerDay() * 5 // a working week
-	gauge := m.renderGauge(total, target, 10)
-	totalStr := gauge + " " +
-		m.theme.Text.Render(domain.FormatDuration(total)) +
-		m.theme.Muted.Render(" / "+domain.FormatDuration(target))
-	parts = append(parts, totalStr)
+	if site := jiraSite(m.cfg.JiraBaseURL); site != "" {
+		parts = append(parts, m.theme.Muted.Render(site))
+	}
 
 	left := strings.Join(parts, sep)
 	right := m.theme.Muted.Render(m.syncLabel())
@@ -459,18 +453,15 @@ func (m Model) renderHeader() string {
 	return clipBox(left+strings.Repeat(" ", gap)+right, m.width, 1)
 }
 
-// weekLabel renders the ISO week number and the Mon–Sun date range.
-func (m Model) weekLabel() string {
-	start := m.weekStart
-	end := start.AddDate(0, 0, 6)
-	_, wk := start.ISOWeek()
-	var rng string
-	if start.Month() == end.Month() {
-		rng = fmt.Sprintf("%s %d–%d", start.Format("Jan"), start.Day(), end.Day())
-	} else {
-		rng = fmt.Sprintf("%s – %s", start.Format("Jan 2"), end.Format("Jan 2"))
+// jiraSite returns the host portion of the Jira base URL (e.g.
+// "example.atlassian.net"), or an empty string when unset.
+func jiraSite(baseURL string) string {
+	s := strings.TrimPrefix(baseURL, "https://")
+	s = strings.TrimPrefix(s, "http://")
+	if i := strings.IndexByte(s, '/'); i >= 0 {
+		s = s[:i]
 	}
-	return fmt.Sprintf("Week %d · %s", wk, rng)
+	return s
 }
 
 // syncLabel describes the last successful refresh.
