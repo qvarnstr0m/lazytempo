@@ -4,10 +4,6 @@ A terminal UI for logging time in [Tempo](https://www.tempo.io/) against
 [Jira](https://www.atlassian.com/software/jira) issues, in the style of
 [lazygit](https://github.com/jesseduffield/lazygit).
 
-**Every worklog must have a Tempo account attached.** A worklog without an
-account is never submitted, and existing account-less worklogs are highlighted
-in red in the week view.
-
 Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea),
 [Bubbles](https://github.com/charmbracelet/bubbles),
 [Lip Gloss](https://github.com/charmbracelet/lipgloss) and
@@ -86,6 +82,10 @@ tempo_api_token = "your-tempo-api-token"
 # e.g. only your assigned issues:
 # my_issues_jql = "assignee = currentUser() AND updated >= -14d ORDER BY updated DESC"
 # target_hours_per_day = 8
+
+# Every worklog must have a Tempo account (default: true). Set false for Tempo
+# instances that don't use accounts, or to log before a relevant account exists.
+# require_account = true
 ```
 
 Environment overrides:
@@ -223,9 +223,11 @@ servers). The service layer is tested with client mocks.
 
 ## Status
 
-MVP: config + auth, three-panel layout, issue listing, week view, and
-create/edit/delete worklogs with the mandatory-account form. Planned next:
-start/stop timer, "fill the day" to target, copy yesterday, and rounding.
+Config + auth, two-column layout, issue listing and search (with a Jira
+fallback), week view with per-day gauges and whole-week worklogs, and
+create/edit/delete worklogs with an account form (mandatory by default,
+configurable). Planned next: start/stop timer, "fill the day" to target, copy
+yesterday, and rounding.
 
 ## License
 
