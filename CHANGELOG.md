@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The form also resizes with the terminal window.
 
 ### Changed
+- The layout is now two columns: the left column stacks Issues (top ~2/3,
+  scrollable) over Details (bottom ~1/3), and the right column is the Week
+  panel. The issue list scrolls with the cursor and shows how many rows are
+  hidden above/below; panel content is clipped to its box so it never overflows.
 - The issue search (`/`) is now multi-word free text: every word must appear in
   an issue's key, summary or project key (e.g. `proj login`). The panel
   title shows the match count and an empty result shows a clear message. All

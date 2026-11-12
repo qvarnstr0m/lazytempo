@@ -35,28 +35,44 @@ func (m Model) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, main, statusBar)
 }
 
-// renderPanels lays out the three panels side by side.
+// renderPanels lays out two columns: a left column with Issues (top ~2/3) over
+// Details (bottom ~1/3), and a right column with the Week panel.
 func (m Model) renderPanels(height int) string {
-	// Horizontal budget: account for borders/padding of three panels.
 	avail := m.width
-	leftW := clampW(avail * 30 / 100)
-	rightW := clampW(avail * 26 / 100)
-	centerW := clampW(avail - leftW - rightW - 6) // 6 ≈ borders/padding
+	// Each box adds 2 (border) to its content width; two columns => -4.
+	leftW := clampW(avail * 2 / 5)
+	rightW := clampW(avail - leftW - 4)
 
-	// Inner content height excludes the two border rows.
-	innerH := height - 2
-	if innerH < 1 {
-		innerH = 1
+	// Left column: the two stacked boxes contribute 4 border rows in total.
+	contentH := height - 4
+	if contentH < 4 {
+		contentH = 4
+	}
+	issuesInnerH := contentH * 2 / 3
+	if issuesInnerH < 3 {
+		issuesInnerH = 3
+	}
+	detailsInnerH := contentH - issuesInnerH
+	if detailsInnerH < 1 {
+		detailsInnerH = 1
 	}
 
-	left := m.theme.panelStyle(m.focused == panelIssues, leftW, innerH).
-		Render(m.renderIssues(leftW, innerH))
-	center := m.theme.panelStyle(m.focused == panelWeek, centerW, innerH).
-		Render(m.renderWeek(centerW, innerH))
-	right := m.theme.panelStyle(m.focused == panelDetails, rightW, innerH).
-		Render(m.renderDetails(rightW, innerH))
+	// Right column: a single box contributes 2 border rows.
+	weekInnerH := height - 2
+	if weekInnerH < 1 {
+		weekInnerH = 1
+	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, left, center, right)
+	issues := m.theme.panelStyle(m.focused == panelIssues, leftW, issuesInnerH).
+		Render(clipLines(m.renderIssues(leftW, issuesInnerH), issuesInnerH))
+	details := m.theme.panelStyle(m.focused == panelDetails, leftW, detailsInnerH).
+		Render(clipLines(m.renderDetails(leftW, detailsInnerH), detailsInnerH))
+	leftCol := lipgloss.JoinVertical(lipgloss.Left, issues, details)
+
+	week := m.theme.panelStyle(m.focused == panelWeek, rightW, weekInnerH).
+		Render(clipLines(m.renderWeek(rightW, weekInnerH), weekInnerH))
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, leftCol, week)
 }
 
 func clampW(w int) int {
@@ -64,6 +80,19 @@ func clampW(w int) int {
 		return 8
 	}
 	return w
+}
+
+// clipLines keeps at most max lines of s so panel content never overflows its
+// box (which would break the layout).
+func clipLines(s string, max int) string {
+	if max < 1 {
+		max = 1
+	}
+	lines := strings.Split(s, "\n")
+	if len(lines) <= max {
+		return s
+	}
+	return strings.Join(lines[:max], "\n")
 }
 
 // renderIssues renders the left "My issues" panel.
@@ -98,7 +127,25 @@ func (m Model) renderIssues(width, height int) string {
 		return b.String()
 	}
 
-	rows := height - 2
+	// Rows available for issues = panel height minus the header lines already
+	// written (title, and the search box + hint when searching).
+	header := 1
+	if m.searching || m.search.Value() != "" {
+		header++
+	}
+	if m.searching {
+		header++
+	}
+	rows := height - header
+	// Reserve a line for the "more below/above" scroll indicator when the list
+	// does not fit.
+	if len(vis) > rows {
+		rows--
+	}
+	if rows < 1 {
+		rows = 1
+	}
+
 	start := scrollStart(m.issueCursor, len(vis), rows)
 	for i := start; i < len(vis) && i < start+rows; i++ {
 		iss := vis[i]
@@ -114,6 +161,11 @@ func (m Model) renderIssues(width, height int) string {
 			line = "  " + m.theme.Text.Render(line)
 		}
 		b.WriteString(marker + line + "\n")
+	}
+	if len(vis) > rows {
+		above := start
+		below := len(vis) - (start + rows)
+		b.WriteString(m.theme.Muted.Render(fmt.Sprintf("  — %d above, %d below —", above, below)))
 	}
 	return strings.TrimRight(b.String(), "\n")
 }

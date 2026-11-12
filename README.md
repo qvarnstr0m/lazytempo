@@ -17,26 +17,35 @@ runtime dependencies.
 ## Layout
 
 ```
-┌─ Issues ───────┐┌─ Week of Nov 10 ──────────┐┌─ Details ──────┐
-│ › PROJ-123 Fix ││ › Mon 10   8h  (green)     ││ PROJ-123       │
-│   PROJ-124 Add ││   Tue 11   6h  (yellow)   ││ Fix login bug  │
-│ ★ PROJ-99  Pin ││   ...                     ││ Project: PROJ  │
-│                ││   Week total: 32h         ││ Status: In Dev │
-│                ││   Worklogs — Mon 10 Nov   ││                │
-│                ││   › 2h PROJ-123 [CORE]    ││                │
-│                ││     1h PROJ-99 [NO ACCOUNT]│                │
-└────────────────┘└───────────────────────────┘└────────────────┘
- 1h30m, 1.5h, …          tab switch · a add · e edit · d delete · q quit
+┌─ Issues (1/48) ─────────┐┌─ Week of Nov 10 ──────────────┐
+│ › PROJ-123 Fix login    ││ › Mon 10   8h  (green)        │
+│   PROJ-124 Add feature  ││   Tue 11   6h  (yellow)       │
+│ ★ PROJ-99  Pinned       ││   ...                         │
+│   …                     ││   Week total: 32h             │
+│   — 0 above, 11 below — ││                               │
+├─ Details ───────────────┤│   Worklogs — Mon 10 Nov       │
+│ PROJ-123                ││ › 09:00–11:00 2h PROJ-123 [CORE]
+│ Fix login bug           ││   11:00–12:00 1h PROJ-99 [NO ACCOUNT]
+│ Project: PROJ           ││                               │
+│ Status:  In Dev         ││                               │
+└─────────────────────────┘└───────────────────────────────┘
+ ready                     tab switch · a add · e edit · q quit
 ```
 
-- **Left — Issues:** issues you are involved with — assigned, reported,
-  recently viewed or watched (configurable JQL) — **plus every issue you have
-  logged time on** (seeded from your recent Tempo worklogs and resolved back to
-  Jira, so they appear even when Tempo worklogs are not synced to Jira) — plus
-  pinned favorites.
-- **Center — Week:** worklogs per day, totals per day/week against a target
-  (default 8h/day). Days at or above target are green, below target yellow.
-- **Right — Details:** the selected issue or worklog.
+The screen is two columns:
+
+- **Left column — Issues (top ~⅔, scrollable) over Details (bottom ~⅓):**
+  - *Issues:* issues you are involved with — assigned, reported, recently viewed
+    or watched (configurable JQL) — **plus every issue you have logged time on**
+    (seeded from your recent Tempo worklogs and resolved back to Jira, so they
+    appear even when Tempo worklogs are not synced to Jira) — plus pinned
+    favorites. The list scrolls with the cursor and shows how many rows are
+    hidden above/below.
+  - *Details:* the selected issue (or the selected worklog when the Week panel
+    is focused).
+- **Right column — Week:** worklogs per day, totals per day/week against a
+  target (default 8h/day). Days at or above target are green, below target
+  yellow.
 - **Bottom — Status bar:** keybindings, errors and confirmations.
 
 ## Install
