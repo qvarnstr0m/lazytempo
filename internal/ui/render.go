@@ -132,14 +132,26 @@ func (m Model) renderIssues(width, height int) string {
 		b.WriteString(m.search.View())
 		b.WriteString("\n")
 		if m.searching {
-			b.WriteString(m.theme.Muted.Render("↓/tab: select · esc: clear") + "\n")
+			hint := "↓/tab: select · esc: clear"
+			switch {
+			case m.remoteSearching:
+				hint += " · searching Jira…"
+			case len(m.remoteResults) > 0:
+				hint += fmt.Sprintf(" · +%d from Jira", len(m.remoteResults))
+			}
+			b.WriteString(m.theme.Muted.Render(hint) + "\n")
 		}
 	}
 
 	if len(vis) == 0 {
-		msg := "no issues"
-		if m.search.Value() != "" {
+		var msg string
+		switch {
+		case m.remoteSearching:
+			msg = "searching Jira…"
+		case m.search.Value() != "":
 			msg = "no matches for " + strconv.Quote(m.search.Value())
+		default:
+			msg = "no issues"
 		}
 		b.WriteString(m.theme.Muted.Render(msg))
 		return b.String()

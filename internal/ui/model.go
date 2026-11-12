@@ -26,6 +26,13 @@ const (
 	panelCount
 )
 
+// searchDebounceMsg fires after a pause in typing to trigger a fallback Jira
+// search; gen lets stale ticks be ignored.
+type searchDebounceMsg struct {
+	gen   int
+	query string
+}
+
 // pendingSelect records where the worklog cursor should land once a newly
 // requested week's worklogs have loaded (used when up/down crosses a week).
 type pendingSelect int
@@ -72,6 +79,11 @@ type Model struct {
 	issues      []domain.Issue
 	issueCursor int
 	searching   bool
+	// Fallback Jira search when nothing loaded matches the query.
+	remoteResults   []domain.Issue
+	remoteQuery     string
+	remoteSearching bool
+	searchGen       int // debounce generation, ignores stale ticks
 
 	// Week panel.
 	weekStart      time.Time
@@ -191,6 +203,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastSync = time.Now()
 		m.clampIssueCursor()
 		return m, m.ensureLinksForSelectedIssue()
+
+	case searchDebounceMsg:
+		// Only act on the latest tick, and only if still needed.
+		if msg.gen != m.searchGen || strings.TrimSpace(m.search.Value()) != msg.query {
+			return m, nil
+		}
+		if len(m.localMatches()) > 0 {
+			return m, nil
+		}
+		m.remoteSearching = true
+		return m, m.svc.SearchRemote(msg.query)
+
+	case remoteIssuesLoadedMsg:
+		m.remoteSearching = false
+		if msg.err != nil {
+			m.setStatus("Jira search: no match")
+			return m, nil
+		}
+		if strings.TrimSpace(m.search.Value()) == msg.query {
+			m.remoteResults = msg.issues
+			m.remoteQuery = msg.query
+			m.clampIssueCursor()
+		}
+		return m, nil
 
 	case worklogsLoadedMsg:
 		m.loading--
@@ -491,8 +527,36 @@ func (m Model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// while you move the text caret.
 	if m.search.Value() != prev {
 		m.issueCursor = 0
+		// The old remote results are for a different query; drop them and
+		// schedule a fresh fallback search if nothing loaded matches.
+		m.remoteResults = nil
+		m.remoteQuery = ""
+		if dc := m.scheduleRemoteSearch(); dc != nil {
+			return m, tea.Batch(cmd, dc)
+		}
 	}
 	return m, cmd
+}
+
+// scheduleRemoteSearch returns a debounced command that triggers a fallback
+// Jira search, but only when the query is substantial and nothing loaded
+// matches it. It returns nil when no remote search is warranted.
+func (m *Model) scheduleRemoteSearch() tea.Cmd {
+	q := strings.TrimSpace(m.search.Value())
+	if len([]rune(q)) < 2 || len(m.localMatches()) > 0 {
+		return nil
+	}
+	m.searchGen++
+	gen := m.searchGen
+	return tea.Tick(400*time.Millisecond, func(time.Time) tea.Msg {
+		return searchDebounceMsg{gen: gen, query: q}
+	})
+}
+
+// localMatches returns the loaded issues matching the current query (excludes
+// remote results).
+func (m Model) localMatches() []domain.Issue {
+	return filterIssues(m.issues, m.search.Value())
 }
 
 func (m Model) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -634,13 +698,26 @@ func (m *Model) clampWorklogCursor() {
 	}
 }
 
-// visibleIssues returns pinned-first, filtered-by-search issue list.
+// visibleIssues returns pinned-first, filtered-by-search issue list. While
+// searching it also includes fallback results fetched from Jira (deduped).
 func (m Model) visibleIssues() []domain.Issue {
-	issues := m.issues
-	if m.searching || m.search.Value() != "" {
-		issues = filterIssues(issues, m.search.Value())
+	if !(m.searching || m.search.Value() != "") {
+		return sortIssues(m.issues)
 	}
-	return sortIssues(issues)
+	pool := m.issues
+	if len(m.remoteResults) > 0 {
+		seen := make(map[string]bool, len(m.issues))
+		for _, i := range m.issues {
+			seen[i.ID] = true
+		}
+		pool = append([]domain.Issue{}, m.issues...)
+		for _, r := range m.remoteResults {
+			if !seen[r.ID] {
+				pool = append(pool, r)
+			}
+		}
+	}
+	return sortIssues(filterIssues(pool, m.search.Value()))
 }
 
 func (m Model) selectedIssue() *domain.Issue {
@@ -672,6 +749,11 @@ func (m Model) issueByID(id string) *domain.Issue {
 	for i := range m.issues {
 		if m.issues[i].ID == id {
 			return &m.issues[i]
+		}
+	}
+	for i := range m.remoteResults {
+		if m.remoteResults[i].ID == id {
+			return &m.remoteResults[i]
 		}
 	}
 	return nil

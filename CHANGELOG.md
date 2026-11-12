@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The form also resizes with the terminal window.
 
 ### Added
+- Issue search falls back to a direct Jira search when nothing in the loaded
+  list matches: after a short debounce it queries Jira (key match for a
+  key-looking query, otherwise a text search) across all issues the account can
+  view, capped at 25 results, and merges them into the list (`+N from Jira`).
 - The Week panel now lists the whole week's worklogs grouped by day, not just
   the selected day. The selected day and worklog stay highlighted, empty days
   are omitted (except the selected one), and the list scrolls to keep the

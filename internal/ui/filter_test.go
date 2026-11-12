@@ -209,6 +209,48 @@ func TestSearchLettersStillType(t *testing.T) {
 	}
 }
 
+func TestBuildSearchJQL(t *testing.T) {
+	cases := map[string]string{
+		"PROJ-123":    `issuekey = "PROJ-123"`,
+		"proj-123":    `issuekey = "PROJ-123"`, // upper-cased
+		"firmware":    `text ~ "firmware" ORDER BY updated DESC`,
+		"reset token": `text ~ "reset token" ORDER BY updated DESC`,
+	}
+	for in, want := range cases {
+		if got := buildSearchJQL(in); got != want {
+			t.Errorf("buildSearchJQL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestVisibleIssuesMergesRemote(t *testing.T) {
+	m := Model{
+		search:        textinput.New(),
+		searching:     true,
+		issues:        []domain.Issue{{ID: "1", Key: "CORE-1", Summary: "local"}},
+		remoteResults: []domain.Issue{{ID: "2", Key: "ZZZ-9", Summary: "firmware remote"}},
+	}
+	m.search.SetValue("firmware")
+	vis := m.visibleIssues()
+	// Only the remote result matches "firmware"; it must appear.
+	found := false
+	for _, i := range vis {
+		if i.Key == "ZZZ-9" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("remote result not included in visible issues: %+v", vis)
+	}
+
+	// A remote result duplicating a loaded id is not shown twice.
+	m.remoteResults = []domain.Issue{{ID: "1", Key: "CORE-1", Summary: "local"}}
+	m.search.SetValue("local")
+	if n := len(m.visibleIssues()); n != 1 {
+		t.Errorf("expected 1 (deduped), got %d", n)
+	}
+}
+
 func TestResumeSearchIfFiltered(t *testing.T) {
 	m := &Model{search: textinput.New(), focused: panelIssues}
 

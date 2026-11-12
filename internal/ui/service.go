@@ -2,6 +2,9 @@ package ui
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -203,6 +206,41 @@ func distinctIssueIDs(worklogs []domain.Worklog) []string {
 		}
 	}
 	return ids
+}
+
+// remoteIssuesLoadedMsg carries the result of a direct Jira search run when the
+// locally loaded issues do not match the search query.
+type remoteIssuesLoadedMsg struct {
+	query  string
+	issues []domain.Issue
+	err    error
+}
+
+// remoteSearchLimit caps how many issues a fallback Jira search returns.
+const remoteSearchLimit = 25
+
+var issueKeyRe = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]*-[0-9]+$`)
+
+// buildSearchJQL turns a free-text query into JQL. A key-looking query matches
+// that issue exactly; anything else is a text search ordered by recency. Jira
+// only returns issues the account may view.
+func buildSearchJQL(query string) string {
+	q := strings.TrimSpace(query)
+	if issueKeyRe.MatchString(q) {
+		return fmt.Sprintf("issuekey = %q", strings.ToUpper(q))
+	}
+	return fmt.Sprintf("text ~ %q ORDER BY updated DESC", q)
+}
+
+// SearchRemote searches Jira directly for issues matching the query, capped at
+// remoteSearchLimit. It is used as a fallback when nothing loaded matches.
+func (s *Service) SearchRemote(query string) tea.Cmd {
+	return func() tea.Msg {
+		c, cancel := ctx()
+		defer cancel()
+		issues, err := s.jira.SearchIssues(c, buildSearchJQL(query), remoteSearchLimit)
+		return remoteIssuesLoadedMsg{query: query, issues: issues, err: err}
+	}
 }
 
 // LoadAccountLinks fetches and caches the account links for a project.

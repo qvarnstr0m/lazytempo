@@ -140,6 +140,12 @@ highlighted issue stays selected, so `j`/`k` navigation and the command keys
 Pressing `↑`/`k` on the top result jumps back up into the search box. `esc`
 clears the search.
 
+When nothing in the loaded list matches, lazytempo falls back to a direct Jira
+search (after a short pause) across all issues your account can view — a
+key-looking query (`PROJ-123`) matches that issue, anything else is a text
+search — capped at 25 results and merged into the list (shown as `+N from
+Jira`). You can log time against those results like any other issue.
+
 ## Time input
 
 The worklog form records a **start** and **end** time via dropdowns in
