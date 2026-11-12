@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Creating or updating a worklog now sends `remainingEstimateSeconds` (the
+  issue's current remaining estimate, fetched from Jira), fixing the Tempo 400
+  "Remaining estimate must not be empty" on projects with estimate tracking.
+  The current estimate is sent unchanged, so logging time does not alter it.
 - Panel content is now clipped to its box width (ANSI-aware) as well as its
   height, so long issue summaries are truncated with `…` instead of wrapping.
   Previously, on a small window, wrapped lines made a panel taller than its box

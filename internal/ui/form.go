@@ -188,11 +188,12 @@ func (f *worklogForm) input() (tempo.WorklogInput, error) {
 		return tempo.WorklogInput{}, err
 	}
 	return tempo.WorklogInput{
-		IssueID:          f.issue.ID,
-		TimeSpentSeconds: seconds,
-		StartDate:        f.dateStr,
-		StartTime:        f.startStr + ":00",
-		Description:      f.desc,
-		AccountKey:       f.accountKey,
+		IssueID:                  f.issue.ID,
+		TimeSpentSeconds:         seconds,
+		StartDate:                f.dateStr,
+		StartTime:                f.startStr + ":00",
+		Description:              f.desc,
+		AccountKey:               f.accountKey,
+		RemainingEstimateSeconds: f.issue.RemainingEstimateSeconds,
 	}, nil
 }

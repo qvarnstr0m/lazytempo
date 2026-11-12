@@ -18,7 +18,11 @@ type Issue struct {
 	ProjectID  string // numeric project id
 	ProjectKey string
 	Status     string
-	Pinned     bool
+	// RemainingEstimateSeconds is the issue's current remaining estimate. Tempo
+	// requires it on every worklog when the project uses estimate tracking;
+	// sending the current value satisfies that and preserves the estimate.
+	RemainingEstimateSeconds int
+	Pinned                   bool
 }
 
 // Account is a Tempo account that time can be booked against.

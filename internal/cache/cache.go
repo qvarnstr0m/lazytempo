@@ -20,7 +20,7 @@ import (
 // cacheVersion is bumped whenever the on-disk format changes in a way that
 // makes older data invalid. A mismatch causes the cache to be discarded and
 // rebuilt from the API, so format changes heal automatically.
-const cacheVersion = 2
+const cacheVersion = 3
 
 // Data is the serialisable cache payload.
 type Data struct {

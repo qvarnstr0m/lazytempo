@@ -110,6 +110,8 @@ type issueJSON struct {
 			ID  string `json:"id"`
 			Key string `json:"key"`
 		} `json:"project"`
+		// TimeEstimate is the remaining estimate in seconds (null -> 0).
+		TimeEstimate int `json:"timeestimate"`
 	} `json:"fields"`
 }
 
@@ -119,7 +121,7 @@ func (c *HTTPClient) SearchIssues(ctx context.Context, jql string, maxResults in
 	if maxResults <= 0 {
 		maxResults = 50
 	}
-	fields := []string{"summary", "status", "project"}
+	fields := []string{"summary", "status", "project", "timeestimate"}
 	var issues []domain.Issue
 	token := ""
 	for {
@@ -142,12 +144,13 @@ func (c *HTTPClient) SearchIssues(ctx context.Context, jql string, maxResults in
 		}
 		for _, i := range out.Issues {
 			issues = append(issues, domain.Issue{
-				ID:         i.ID,
-				Key:        i.Key,
-				Summary:    i.Fields.Summary,
-				ProjectID:  i.Fields.Project.ID,
-				ProjectKey: i.Fields.Project.Key,
-				Status:     i.Fields.Status.Name,
+				ID:                       i.ID,
+				Key:                      i.Key,
+				Summary:                  i.Fields.Summary,
+				ProjectID:                i.Fields.Project.ID,
+				ProjectKey:               i.Fields.Project.Key,
+				Status:                   i.Fields.Status.Name,
+				RemainingEstimateSeconds: i.Fields.TimeEstimate,
 			})
 		}
 		if out.IsLast || out.NextPageToken == "" || len(issues) >= maxResults {

@@ -80,13 +80,14 @@ func TestCreateWorklogSendsAccount(t *testing.T) {
 
 	c := New(srv.URL, "tok", testDoer(srv))
 	wl, err := c.CreateWorklog(context.Background(), WorklogInput{
-		IssueID:          "10991",
-		AuthorAccountID:  "abc",
-		TimeSpentSeconds: 3600,
-		StartDate:        "2026-11-12",
-		StartTime:        "09:00:00",
-		Description:      "Code review",
-		AccountKey:       "CORE",
+		IssueID:                  "10991",
+		AuthorAccountID:          "abc",
+		TimeSpentSeconds:         3600,
+		StartDate:                "2026-11-12",
+		StartTime:                "09:00:00",
+		Description:              "Code review",
+		AccountKey:               "CORE",
+		RemainingEstimateSeconds: 7200,
 	})
 	if err != nil {
 		t.Fatalf("CreateWorklog: %v", err)
@@ -100,6 +101,10 @@ func TestCreateWorklogSendsAccount(t *testing.T) {
 	}
 	if len(received.Attributes) != 1 || received.Attributes[0].Key != "_Account_" || received.Attributes[0].Value != "CORE" {
 		t.Errorf("account attribute not sent correctly: %+v", received.Attributes)
+	}
+	// Tempo requires remainingEstimateSeconds when estimate tracking is on.
+	if received.RemainingEstimateSeconds != 7200 {
+		t.Errorf("remainingEstimateSeconds = %d, want 7200", received.RemainingEstimateSeconds)
 	}
 }
 

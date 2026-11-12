@@ -35,6 +35,10 @@ type WorklogInput struct {
 	StartTime        string
 	Description      string
 	AccountKey       string
+	// RemainingEstimateSeconds is sent as-is; Tempo requires it when the
+	// project uses estimate tracking. Pass the issue's current remaining
+	// estimate to preserve it.
+	RemainingEstimateSeconds int
 }
 
 // Client is the behaviour lazytempo depends on from Tempo.
@@ -295,13 +299,14 @@ func (c *HTTPClient) Worklogs(ctx context.Context, accountID, from, to string) (
 
 // worklogPayload is the request body for create/update.
 type worklogPayload struct {
-	IssueID          int               `json:"issueId"`
-	AuthorAccountID  string            `json:"authorAccountId"`
-	TimeSpentSeconds int               `json:"timeSpentSeconds"`
-	StartDate        string            `json:"startDate"`
-	StartTime        string            `json:"startTime,omitempty"`
-	Description      string            `json:"description"`
-	Attributes       []attributeKeyVal `json:"attributes"`
+	IssueID                  int               `json:"issueId"`
+	AuthorAccountID          string            `json:"authorAccountId"`
+	TimeSpentSeconds         int               `json:"timeSpentSeconds"`
+	StartDate                string            `json:"startDate"`
+	StartTime                string            `json:"startTime,omitempty"`
+	Description              string            `json:"description"`
+	RemainingEstimateSeconds int               `json:"remainingEstimateSeconds"`
+	Attributes               []attributeKeyVal `json:"attributes"`
 }
 
 type attributeKeyVal struct {
@@ -319,12 +324,13 @@ func (c *HTTPClient) buildPayload(in WorklogInput) (worklogPayload, error) {
 		startTime = "09:00:00"
 	}
 	return worklogPayload{
-		IssueID:          issueID,
-		AuthorAccountID:  in.AuthorAccountID,
-		TimeSpentSeconds: in.TimeSpentSeconds,
-		StartDate:        in.StartDate,
-		StartTime:        startTime,
-		Description:      in.Description,
+		IssueID:                  issueID,
+		AuthorAccountID:          in.AuthorAccountID,
+		TimeSpentSeconds:         in.TimeSpentSeconds,
+		StartDate:                in.StartDate,
+		StartTime:                startTime,
+		Description:              in.Description,
+		RemainingEstimateSeconds: in.RemainingEstimateSeconds,
 		Attributes: []attributeKeyVal{
 			{Key: c.accountKey(), Value: in.AccountKey},
 		},
