@@ -72,6 +72,37 @@ func TestUpAtTopReturnsToSearch(t *testing.T) {
 	}
 }
 
+func TestRenderGauge(t *testing.T) {
+	m := Model{theme: NewTheme()}
+	// Half of target -> ~5 of 10 cells filled.
+	g := countRunes(m.renderGauge(4*3600, 8*3600, 10), '█')
+	if g != 5 {
+		t.Errorf("half target: %d filled, want 5", g)
+	}
+	// At/over target -> full.
+	if g := countRunes(m.renderGauge(9*3600, 8*3600, 10), '█'); g != 10 {
+		t.Errorf("over target: %d filled, want 10", g)
+	}
+	// A tiny non-zero amount still shows at least one cell.
+	if g := countRunes(m.renderGauge(60, 8*3600, 10), '█'); g != 1 {
+		t.Errorf("tiny amount: %d filled, want 1", g)
+	}
+	// Zero -> empty.
+	if g := countRunes(m.renderGauge(0, 8*3600, 10), '█'); g != 0 {
+		t.Errorf("zero: %d filled, want 0", g)
+	}
+}
+
+func countRunes(s string, r rune) int {
+	n := 0
+	for _, c := range s {
+		if c == r {
+			n++
+		}
+	}
+	return n
+}
+
 func TestHelpOverlayCloses(t *testing.T) {
 	for _, k := range []tea.KeyMsg{
 		{Type: tea.KeyEsc},

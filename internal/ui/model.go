@@ -55,6 +55,8 @@ type Model struct {
 	// Reference data.
 	accountID      string
 	accountAttrKey string
+	userName       string
+	lastSync       time.Time
 
 	// Issues panel.
 	issues      []domain.Issue
@@ -158,6 +160,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.accountID = msg.accountID
 		m.accountAttrKey = msg.attrKey
+		m.userName = msg.displayName
+		m.lastSync = time.Now()
 		m.svc.SetAccountID(msg.accountID)
 		to := time.Now().Format(dateLayout)
 		from := time.Now().AddDate(0, 0, -30).Format(dateLayout)
@@ -173,6 +177,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.issues = msg.issues
+		m.lastSync = time.Now()
 		m.clampIssueCursor()
 		return m, m.ensureLinksForSelectedIssue()
 
@@ -182,6 +187,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setError(fmt.Sprintf("load worklogs failed: %v", msg.err))
 			return m, nil
 		}
+		m.lastSync = time.Now()
 		if msg.from.Equal(m.weekStart) {
 			m.rebuildDays(msg.worklogs)
 		}

@@ -9,6 +9,7 @@ import (
 	"lazytempo/internal/cache"
 	"lazytempo/internal/config"
 	"lazytempo/internal/domain"
+	"lazytempo/internal/jira"
 	"lazytempo/internal/tempo"
 )
 
@@ -28,12 +29,15 @@ func TestMain(m *testing.M) {
 // --- mocks ---
 
 type mockJira struct {
-	accountID string
-	issues    []domain.Issue
-	err       error
+	accountID   string
+	displayName string
+	issues      []domain.Issue
+	err         error
 }
 
-func (m *mockJira) Myself(context.Context) (string, error) { return m.accountID, m.err }
+func (m *mockJira) Myself(context.Context) (jira.Self, error) {
+	return jira.Self{AccountID: m.accountID, DisplayName: m.displayName}, m.err
+}
 func (m *mockJira) SearchIssues(context.Context, string, int) ([]domain.Issue, error) {
 	return m.issues, m.err
 }

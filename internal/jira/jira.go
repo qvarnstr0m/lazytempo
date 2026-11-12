@@ -17,10 +17,16 @@ import (
 	"lazytempo/internal/httpx"
 )
 
+// Self identifies the authenticated Jira user.
+type Self struct {
+	AccountID   string
+	DisplayName string
+}
+
 // Client is the behaviour lazytempo depends on from Jira.
 type Client interface {
-	// Myself returns the authenticated user's Jira accountId.
-	Myself(ctx context.Context) (string, error)
+	// Myself returns the authenticated user's accountId and display name.
+	Myself(ctx context.Context) (Self, error)
 	// SearchIssues runs a JQL query and returns matching issues.
 	SearchIssues(ctx context.Context, jql string, maxResults int) ([]domain.Issue, error)
 	// IssuesByIDs resolves issues by their numeric ids (as returned by Tempo
@@ -57,23 +63,24 @@ func (c *HTTPClient) newRequest(ctx context.Context, method, path string, body a
 }
 
 type myselfResponse struct {
-	AccountID string `json:"accountId"`
+	AccountID   string `json:"accountId"`
+	DisplayName string `json:"displayName"`
 }
 
 // Myself implements Client.
-func (c *HTTPClient) Myself(ctx context.Context) (string, error) {
+func (c *HTTPClient) Myself(ctx context.Context) (Self, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, "/rest/api/3/myself", nil)
 	if err != nil {
-		return "", err
+		return Self{}, err
 	}
 	var out myselfResponse
 	if err := c.http.DoJSON(req, &out); err != nil {
-		return "", fmt.Errorf("jira myself: %w", err)
+		return Self{}, fmt.Errorf("jira myself: %w", err)
 	}
 	if out.AccountID == "" {
-		return "", fmt.Errorf("jira myself: empty accountId in response")
+		return Self{}, fmt.Errorf("jira myself: empty accountId in response")
 	}
-	return out.AccountID, nil
+	return Self{AccountID: out.AccountID, DisplayName: out.DisplayName}, nil
 }
 
 // searchRequest is the body for the enhanced JQL search endpoint

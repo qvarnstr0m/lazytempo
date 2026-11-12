@@ -29,17 +29,20 @@ func TestMyself(t *testing.T) {
 		if auth != want {
 			t.Errorf("auth = %q, want %q", auth, want)
 		}
-		_ = json.NewEncoder(w).Encode(map[string]string{"accountId": "abc-123"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"accountId": "abc-123", "displayName": "Martin Q"})
 	}))
 	defer srv.Close()
 
 	c := New(srv.URL, "me@example.com", "token123", testDoer(srv))
-	id, err := c.Myself(context.Background())
+	self, err := c.Myself(context.Background())
 	if err != nil {
 		t.Fatalf("Myself: %v", err)
 	}
-	if id != "abc-123" {
-		t.Errorf("accountId = %q, want abc-123", id)
+	if self.AccountID != "abc-123" {
+		t.Errorf("accountId = %q, want abc-123", self.AccountID)
+	}
+	if self.DisplayName != "Martin Q" {
+		t.Errorf("displayName = %q, want Martin Q", self.DisplayName)
 	}
 }
 

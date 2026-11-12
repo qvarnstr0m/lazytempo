@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -18,8 +19,9 @@ func (m Model) View() string {
 	}
 
 	// Form overlay takes over the main area.
+	header := m.renderHeader()
 	statusBar := m.renderStatusBar()
-	mainHeight := m.height - lipgloss.Height(statusBar)
+	mainHeight := m.height - lipgloss.Height(statusBar) - lipgloss.Height(header)
 	if mainHeight < 3 {
 		mainHeight = 3
 	}
@@ -33,7 +35,7 @@ func (m Model) View() string {
 		main = m.renderPanels(mainHeight)
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, main, statusBar)
+	return lipgloss.JoinVertical(lipgloss.Left, header, main, statusBar)
 }
 
 // renderPanels lays out two columns: a left column with Issues (top ~2/3) over
@@ -343,6 +345,96 @@ func (m Model) renderFullHelp(height int) string {
 		m.theme.Muted.Render("press ? or esc to return")
 	box := m.theme.PanelFocused.Width(minInt(m.width-2, 70)).Render(content)
 	return lipgloss.Place(m.width, height, lipgloss.Center, lipgloss.Center, box)
+}
+
+// renderHeader renders the top strip: brand, user, the week range, the week
+// total against target with a small gauge, and a sync indicator on the right.
+func (m Model) renderHeader() string {
+	sep := m.theme.Muted.Render(" · ")
+
+	parts := []string{lipgloss.NewStyle().Foreground(ColorPrimary).Bold(true).Render("lazytempo")}
+	if m.userName != "" {
+		parts = append(parts, m.theme.Accent.Render(m.userName))
+	}
+	parts = append(parts, m.theme.Text.Render(m.weekLabel()))
+
+	total := weekTotalSeconds(m.days)
+	target := m.cfg.TargetSecondsPerDay() * 5 // a working week
+	gauge := m.renderGauge(total, target, 10)
+	totalStr := gauge + " " +
+		m.theme.Text.Render(domain.FormatDuration(total)) +
+		m.theme.Muted.Render(" / "+domain.FormatDuration(target))
+	parts = append(parts, totalStr)
+
+	left := strings.Join(parts, sep)
+	right := m.theme.Muted.Render(m.syncLabel())
+
+	gap := m.width - lipgloss.Width(left) - lipgloss.Width(right)
+	if gap < 1 {
+		gap = 1
+	}
+	return clipBox(left+strings.Repeat(" ", gap)+right, m.width, 1)
+}
+
+// weekLabel renders the ISO week number and the Mon–Sun date range.
+func (m Model) weekLabel() string {
+	start := m.weekStart
+	end := start.AddDate(0, 0, 6)
+	_, wk := start.ISOWeek()
+	var rng string
+	if start.Month() == end.Month() {
+		rng = fmt.Sprintf("%s %d–%d", start.Format("Jan"), start.Day(), end.Day())
+	} else {
+		rng = fmt.Sprintf("%s – %s", start.Format("Jan 2"), end.Format("Jan 2"))
+	}
+	return fmt.Sprintf("Week %d · %s", wk, rng)
+}
+
+// syncLabel describes the last successful refresh.
+func (m Model) syncLabel() string {
+	if m.loading > 0 {
+		return m.spinner.View() + " syncing…"
+	}
+	if m.lastSync.IsZero() {
+		return ""
+	}
+	d := time.Since(m.lastSync)
+	switch {
+	case d < time.Minute:
+		return "synced just now"
+	case d < time.Hour:
+		return fmt.Sprintf("synced %dm ago", int(d.Minutes()))
+	default:
+		return fmt.Sprintf("synced %dh ago", int(d.Hours()))
+	}
+}
+
+// renderGauge draws a block-character progress bar of done/target over `cells`
+// columns: the fill is green when the target is met, otherwise the pink accent.
+func (m Model) renderGauge(done, target, cells int) string {
+	if cells < 1 {
+		cells = 1
+	}
+	frac := 0.0
+	if target > 0 {
+		frac = float64(done) / float64(target)
+	}
+	if frac > 1 {
+		frac = 1
+	}
+	filled := int(frac*float64(cells) + 0.5)
+	if done > 0 && filled == 0 {
+		filled = 1
+	}
+	if filled > cells {
+		filled = cells
+	}
+	fill := m.theme.Accent
+	if target > 0 && done >= target {
+		fill = m.theme.Success
+	}
+	return fill.Render(strings.Repeat("█", filled)) +
+		m.theme.Muted.Render(strings.Repeat("░", cells-filled))
 }
 
 // renderStatusBar renders the bottom status bar with short help and status text.

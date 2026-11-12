@@ -32,7 +32,9 @@ runtime dependencies.
  ready                     tab switch · a add · e edit · q quit
 ```
 
-The screen is two columns:
+A header strip across the top shows the app name, your Jira display name, the
+current ISO week and date range, the week total against target with a small
+gauge, and a last-synced indicator. Below it the screen is two columns:
 
 - **Left column — Issues (top ~⅔, scrollable) over Details (bottom ~⅓):**
   - *Issues:* issues you are involved with — assigned, reported, recently viewed

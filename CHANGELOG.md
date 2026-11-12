@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   description and other fields use the full width instead of wrapping early.
   The form also resizes with the terminal window.
 
+### Added
+- A header strip across the top of the UI: app name, your Jira display name, the
+  current ISO week and Mon–Sun date range, the week total against target with a
+  small gauge, and a last-synced indicator (`synced 2m ago` / `syncing…`). The
+  Jira `myself` lookup now also reads the display name.
+
 ### Changed
 - The layout is now two columns: the left column stacks Issues (top ~2/3,
   scrollable) over Details (bottom ~1/3), and the right column is the Week

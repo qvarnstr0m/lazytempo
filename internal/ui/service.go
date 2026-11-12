@@ -37,9 +37,10 @@ func ctx() (context.Context, context.CancelFunc) {
 // --- Messages ---
 
 type referenceLoadedMsg struct {
-	accountID string
-	attrKey   string
-	err       error
+	accountID   string
+	displayName string
+	attrKey     string
+	err         error
 }
 
 type issuesLoadedMsg struct {
@@ -88,7 +89,7 @@ func (s *Service) LoadReference() tea.Cmd {
 		c, cancel := ctx()
 		defer cancel()
 
-		accountID, err := s.jira.Myself(c)
+		self, err := s.jira.Myself(c)
 		if err != nil {
 			return referenceLoadedMsg{err: err}
 		}
@@ -107,8 +108,8 @@ func (s *Service) LoadReference() tea.Cmd {
 			return referenceLoadedMsg{err: err}
 		}
 
-		s.cache.SetReference(accountID, attrKey, accounts, attrs)
-		return referenceLoadedMsg{accountID: accountID, attrKey: attrKey}
+		s.cache.SetReference(self.AccountID, attrKey, accounts, attrs)
+		return referenceLoadedMsg{accountID: self.AccountID, displayName: self.DisplayName, attrKey: attrKey}
 	}
 }
 
