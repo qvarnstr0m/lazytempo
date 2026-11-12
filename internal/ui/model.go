@@ -331,6 +331,13 @@ func (m Model) handleIssuesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, m.ensureLinksForSelectedIssue()
 	case key.Matches(msg, m.keys.Up):
+		// At the top of a filtered list, go back up into the search box (the
+		// counterpart to ↓/tab dropping into the list).
+		if m.issueCursor == 0 && m.search.Value() != "" {
+			m.searching = true
+			m.search.Focus()
+			return m, textinput.Blink
+		}
 		if m.issueCursor > 0 {
 			m.issueCursor--
 		}

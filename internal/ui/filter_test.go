@@ -40,6 +40,38 @@ func TestSearchDownFocusesList(t *testing.T) {
 	}
 }
 
+func TestUpAtTopReturnsToSearch(t *testing.T) {
+	// In a filtered list, pressing up on the top issue returns to the search box.
+	ti := textinput.New()
+	ti.SetValue("core")
+	m := Model{search: ti, searching: false, focused: panelIssues,
+		issues: sampleIssues(), issueCursor: 0, keys: DefaultKeyMap()}
+
+	res, _ := m.handleIssuesKey(tea.KeyMsg{Type: tea.KeyUp})
+	mm := res.(Model)
+	if !mm.searching || !mm.search.Focused() {
+		t.Error("up on top of a filtered list should re-focus the search box")
+	}
+
+	// With a non-zero cursor it just moves up, staying in the list.
+	m.issueCursor = 2
+	res, _ = m.handleIssuesKey(tea.KeyMsg{Type: tea.KeyUp})
+	mm = res.(Model)
+	if mm.searching {
+		t.Error("up from a lower row should not jump to search")
+	}
+	if mm.issueCursor != 1 {
+		t.Errorf("cursor = %d, want 1", mm.issueCursor)
+	}
+
+	// With no active filter, up on top does nothing special.
+	m2 := Model{search: textinput.New(), focused: panelIssues, issues: sampleIssues(), issueCursor: 0, keys: DefaultKeyMap()}
+	res, _ = m2.handleIssuesKey(tea.KeyMsg{Type: tea.KeyUp})
+	if res.(Model).searching {
+		t.Error("up with no filter should not open search")
+	}
+}
+
 func TestSearchLettersStillType(t *testing.T) {
 	// A command letter like 'a' is typed into the query while searching, not
 	// treated as a command.

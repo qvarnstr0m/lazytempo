@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   characters stay typeable; press `↓`, `tab` or `enter` to move focus from the
   search box into the results (keeping the filter), where `j`/`k` and the
   command keys (`a`/`e`/`d`/`c`/`p`) act on the highlighted issue immediately.
+  Pressing `↑`/`k` on the top result returns focus to the search box.
 - The worklog form now records start and end time via 5-minute dropdowns in
   24-hour European format (e.g. 16:05) instead of a free-text duration; the time
   spent is derived from the range (end must be after start). For a new worklog

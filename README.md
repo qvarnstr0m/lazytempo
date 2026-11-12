@@ -124,7 +124,8 @@ match count (e.g. `Issues (3/48)`).
 Every character is typeable in the query. Press `↓`, `tab` or `enter` to move
 focus from the search box into the results (keeping the filter) — the
 highlighted issue stays selected, so `j`/`k` navigation and the command keys
-(`a`, `e`, `d`, `c`, `p`) act on it immediately without any further step. `esc`
+(`a`, `e`, `d`, `c`, `p`) act on it immediately without any further step.
+Pressing `↑`/`k` on the top result jumps back up into the search box. `esc`
 clears the search.
 
 ## Time input
