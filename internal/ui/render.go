@@ -120,19 +120,21 @@ func (m Model) renderWeek(width, height int) string {
 		dayLabel := d.Date.Format("Mon 02")
 		totalStr := domain.FormatDuration(total)
 
-		style := m.theme.Warning
+		totalStyle := m.theme.Warning
 		if total >= target {
-			style = m.theme.Success
+			totalStyle = m.theme.Success
 		} else if total == 0 {
-			style = m.theme.Muted
+			totalStyle = m.theme.Muted
 		}
 
+		labelStyle := m.theme.Text
 		prefix := "  "
 		if i == m.selectedDay {
 			prefix = m.theme.Selected.Render("› ")
+			labelStyle = m.theme.Selected
 		}
-		row := fmt.Sprintf("%-8s %s", dayLabel, style.Render(totalStr))
-		b.WriteString(prefix + row + "\n")
+		row := prefix + labelStyle.Render(fmt.Sprintf("%-8s", dayLabel)) + " " + totalStyle.Render(totalStr)
+		b.WriteString(row + "\n")
 	}
 
 	weekTotal := weekTotalSeconds(m.days)
@@ -142,7 +144,7 @@ func (m Model) renderWeek(width, height int) string {
 		wtStyle = m.theme.Success
 	}
 	b.WriteString(m.theme.Muted.Render("────────────") + "\n")
-	b.WriteString("Week total: " + wtStyle.Render(domain.FormatDuration(weekTotal)) + "\n\n")
+	b.WriteString(m.theme.Muted.Render("Week total: ") + wtStyle.Render(domain.FormatDuration(weekTotal)) + "\n\n")
 
 	// Worklogs for the selected day.
 	wls := m.currentDayWorklogs()
@@ -153,18 +155,27 @@ func (m Model) renderWeek(width, height int) string {
 	}
 	for i, w := range wls {
 		key := m.issueKeyFor(w.IssueID)
-		line := fmt.Sprintf("%s %s %s", worklogClockRange(w), domain.FormatDuration(w.TimeSpentSeconds), key)
-		if !w.HasAccount() {
-			line += " " + m.theme.Error.Render("[NO ACCOUNT]")
-		} else {
-			line += " " + m.theme.Muted.Render("["+w.AccountKey+"]")
-		}
-		line = truncate(line, width-3)
+
+		timeStyle := m.theme.Accent
+		bodyStyle := m.theme.Text
+		prefix := "  "
 		if i == m.worklogCursor && m.focused == panelWeek {
-			b.WriteString(m.theme.Selected.Render("› "+line) + "\n")
-		} else {
-			b.WriteString("  " + line + "\n")
+			prefix = m.theme.Selected.Render("› ")
+			timeStyle = m.theme.Selected
+			bodyStyle = m.theme.Selected
 		}
+
+		acct := m.theme.Muted.Render("[" + w.AccountKey + "]")
+		if !w.HasAccount() {
+			acct = m.theme.Error.Render("[NO ACCOUNT]")
+		}
+
+		body := truncate(domain.FormatDuration(w.TimeSpentSeconds)+" "+key, width-16)
+		line := prefix +
+			timeStyle.Render(worklogClockRange(w)) + " " +
+			bodyStyle.Render(body) + " " +
+			acct
+		b.WriteString(line + "\n")
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
@@ -188,27 +199,27 @@ func (m Model) renderDetails(width, height int) string {
 		return b.String()
 	}
 	b.WriteString(m.theme.Accent.Render(iss.Key) + "\n")
-	b.WriteString(wrap(iss.Summary, width-2) + "\n\n")
-	b.WriteString(m.theme.Muted.Render("Project: ") + iss.ProjectKey + "\n")
-	b.WriteString(m.theme.Muted.Render("Status:  ") + iss.Status + "\n")
+	b.WriteString(m.theme.Text.Render(wrap(iss.Summary, width-2)) + "\n\n")
+	b.WriteString(m.theme.Muted.Render("Project: ") + m.theme.Text.Render(iss.ProjectKey) + "\n")
+	b.WriteString(m.theme.Muted.Render("Status:  ") + m.theme.Text.Render(iss.Status) + "\n")
 	if last := m.cache.LastAccountForIssue(iss.ID); last != "" {
-		b.WriteString(m.theme.Muted.Render("Last account: ") + last + "\n")
+		b.WriteString(m.theme.Muted.Render("Last account: ") + m.theme.Text.Render(last) + "\n")
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
 
 func (m Model) writeWorklogDetails(b *strings.Builder, w domain.Worklog, width int) {
 	b.WriteString(m.theme.Accent.Render(m.issueKeyFor(w.IssueID)) + "\n")
-	b.WriteString(m.theme.Muted.Render("When:    ") + worklogClockRange(w) + "\n")
-	b.WriteString(m.theme.Muted.Render("Time:    ") + domain.FormatDuration(w.TimeSpentSeconds) + "\n")
-	b.WriteString(m.theme.Muted.Render("Date:    ") + w.StartDate + "\n")
+	b.WriteString(m.theme.Muted.Render("When:    ") + m.theme.Accent.Render(worklogClockRange(w)) + "\n")
+	b.WriteString(m.theme.Muted.Render("Time:    ") + m.theme.Text.Render(domain.FormatDuration(w.TimeSpentSeconds)) + "\n")
+	b.WriteString(m.theme.Muted.Render("Date:    ") + m.theme.Text.Render(w.StartDate) + "\n")
 	if w.HasAccount() {
-		b.WriteString(m.theme.Muted.Render("Account: ") + w.AccountKey + "\n")
+		b.WriteString(m.theme.Muted.Render("Account: ") + m.theme.Text.Render(w.AccountKey) + "\n")
 	} else {
 		b.WriteString(m.theme.Muted.Render("Account: ") + m.theme.Error.Render("missing!") + "\n")
 	}
 	if w.Description != "" {
-		b.WriteString("\n" + wrap(w.Description, width-2))
+		b.WriteString("\n" + m.theme.Text.Render(wrap(w.Description, width-2)))
 	}
 }
 

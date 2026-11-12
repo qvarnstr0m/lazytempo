@@ -59,10 +59,12 @@ func NewTheme() Theme {
 		PanelFocused: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(ColorPrimary).
+			Foreground(ColorText).
 			Padding(0, 1),
 		PanelBlurred: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(ColorMuted).
+			Foreground(ColorText).
 			Padding(0, 1),
 
 		TitleFocused: lipgloss.NewStyle().Foreground(ColorPrimary).Bold(true),
