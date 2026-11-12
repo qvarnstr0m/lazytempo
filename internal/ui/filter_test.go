@@ -234,6 +234,43 @@ func TestSearchLettersStillType(t *testing.T) {
 	}
 }
 
+func TestApplySortModes(t *testing.T) {
+	issues := []domain.Issue{
+		{ID: "1", Key: "A-1"},
+		{ID: "2", Key: "A-2"},
+		{ID: "3", Key: "A-3", Pinned: true},
+	}
+	stats := map[string]worklogStat{
+		"1": {totalSeconds: 3600, lastDate: "2026-11-10"},
+		"2": {totalSeconds: 7200, lastDate: "2026-11-12"},
+		// id 3 (pinned) has no logs
+	}
+	m := Model{worklogStats: stats}
+
+	order := func(iss []domain.Issue) string {
+		var b []byte
+		for _, i := range iss {
+			b = append(b, i.Key[len(i.Key)-1])
+		}
+		return string(b)
+	}
+
+	// Pinned always first.
+	m.sortMode = sortRecent
+	if got := order(m.applySort(issues)); got != "321" {
+		t.Errorf("recent: order = %s, want 321 (pinned, then 2026-11-12, then -10)", got)
+	}
+	m.sortMode = sortMost
+	if got := order(m.applySort(issues)); got != "321" {
+		t.Errorf("most: order = %s, want 321 (pinned, then 7200s, then 3600s)", got)
+	}
+	// Default keeps incoming order among non-pinned, pinned still first.
+	m.sortMode = sortDefault
+	if got := order(m.applySort(issues)); got != "312" {
+		t.Errorf("default: order = %s, want 312 (pinned first, then 1,2)", got)
+	}
+}
+
 func TestBuildSearchJQL(t *testing.T) {
 	cases := map[string]string{
 		"PROJ-123":    `issuekey = "PROJ-123"`,

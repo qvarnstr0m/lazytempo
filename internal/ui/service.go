@@ -57,9 +57,18 @@ type worklogsLoadedMsg struct {
 	err      error
 }
 
+// worklogStat aggregates how much and how recently time was logged on an issue
+// over the seeded window (used for sorting the issue list).
+type worklogStat struct {
+	totalSeconds int
+	lastDate     string // latest "YYYY-MM-DD"
+}
+
 // worklogIssuesLoadedMsg carries issues resolved from Tempo worklog issue ids.
+// stats is populated only by the seeding flow (the recent-worklogs window).
 type worklogIssuesLoadedMsg struct {
 	issues []domain.Issue
+	stats  map[string]worklogStat
 	err    error
 }
 
@@ -168,8 +177,30 @@ func (s *Service) SeedIssuesFromWorklogs(from, to string) tea.Cmd {
 		if err != nil {
 			return worklogIssuesLoadedMsg{err: err}
 		}
-		return s.resolveAndMerge(c, distinctIssueIDs(worklogs))
+		msg := s.resolveAndMerge(c, distinctIssueIDs(worklogs))
+		if m, ok := msg.(worklogIssuesLoadedMsg); ok && m.err == nil {
+			m.stats = aggregateStats(worklogs)
+			return m
+		}
+		return msg
 	}
+}
+
+// aggregateStats sums logged time and tracks the latest log date per issue.
+func aggregateStats(worklogs []domain.Worklog) map[string]worklogStat {
+	stats := map[string]worklogStat{}
+	for _, w := range worklogs {
+		if w.IssueID == "" {
+			continue
+		}
+		st := stats[w.IssueID]
+		st.totalSeconds += w.TimeSpentSeconds
+		if w.StartDate > st.lastDate {
+			st.lastDate = w.StartDate
+		}
+		stats[w.IssueID] = st
+	}
+	return stats
 }
 
 // ResolveIssues resolves the given issue ids to Jira issues and merges them.

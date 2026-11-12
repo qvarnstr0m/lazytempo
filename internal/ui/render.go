@@ -122,6 +122,9 @@ func (m Model) renderIssues(width, height int) string {
 	if m.search.Value() != "" {
 		title = fmt.Sprintf("Issues (%d/%d)", len(vis), len(m.issues))
 	}
+	if m.sortMode != sortDefault {
+		title += m.theme.Muted.Render("  · " + m.sortMode.label())
+	}
 	if m.loading > 0 {
 		title = fmt.Sprintf("%s %s", title, m.spinner.View())
 	}

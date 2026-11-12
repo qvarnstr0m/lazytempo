@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -25,6 +26,26 @@ const (
 	panelDetails
 	panelCount
 )
+
+// sortMode controls the ordering of the issue list.
+type sortMode int
+
+const (
+	sortDefault sortMode = iota // JQL order (recently updated), worklog issues appended
+	sortRecent                  // most recently logged on
+	sortMost                    // most time logged on
+)
+
+func (s sortMode) label() string {
+	switch s {
+	case sortRecent:
+		return "recently logged"
+	case sortMost:
+		return "most logged"
+	default:
+		return "default"
+	}
+}
 
 // searchDebounceMsg fires after a pause in typing to trigger a fallback Jira
 // search; gen lets stale ticks be ignored.
@@ -84,6 +105,9 @@ type Model struct {
 	remoteQuery     string
 	remoteSearching bool
 	searchGen       int // debounce generation, ignores stale ticks
+	// Issue sort order and the per-issue worklog stats it can use.
+	sortMode     sortMode
+	worklogStats map[string]worklogStat
 
 	// Week panel.
 	weekStart      time.Time
@@ -252,6 +276,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setError(fmt.Sprintf("resolve logged issues failed: %v", msg.err))
 			return m, nil
 		}
+		if msg.stats != nil {
+			m.worklogStats = msg.stats
+		}
 		if len(msg.issues) > 0 {
 			m.issues = m.cache.Issues()
 			m.clampIssueCursor()
@@ -419,6 +446,11 @@ func (m Model) handleIssuesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
+	case key.Matches(msg, m.keys.Sort):
+		m.sortMode = (m.sortMode + 1) % 3
+		m.issueCursor = 0
+		m.setStatus("sorted by " + m.sortMode.label())
+		return m, m.ensureLinksForSelectedIssue()
 	case key.Matches(msg, m.keys.Add):
 		return m.requestAddWorklog()
 	}
@@ -718,7 +750,7 @@ func (m *Model) clampWorklogCursor() {
 // searching it also includes fallback results fetched from Jira (deduped).
 func (m Model) visibleIssues() []domain.Issue {
 	if !(m.searching || m.search.Value() != "") {
-		return sortIssues(m.issues)
+		return m.applySort(m.issues)
 	}
 	pool := m.issues
 	if len(m.remoteResults) > 0 {
@@ -733,7 +765,7 @@ func (m Model) visibleIssues() []domain.Issue {
 			}
 		}
 	}
-	return sortIssues(filterIssues(pool, m.search.Value()))
+	return m.applySort(filterIssues(pool, m.search.Value()))
 }
 
 func (m Model) selectedIssue() *domain.Issue {
@@ -880,16 +912,28 @@ func matchesAllTerms(haystack string, terms []string) bool {
 	return true
 }
 
-// sortIssues puts pinned issues first, preserving relative order otherwise.
-func sortIssues(issues []domain.Issue) []domain.Issue {
-	pinned := make([]domain.Issue, 0, len(issues))
-	rest := make([]domain.Issue, 0, len(issues))
-	for _, i := range issues {
-		if i.Pinned {
-			pinned = append(pinned, i)
-		} else {
-			rest = append(rest, i)
+// applySort orders issues pinned-first, then by the active sort mode: by last
+// logged date (recently logged), by total logged time (most logged), or the
+// incoming order (default). The sort is stable so equal issues keep their order.
+func (m Model) applySort(issues []domain.Issue) []domain.Issue {
+	out := make([]domain.Issue, len(issues))
+	copy(out, issues)
+	sort.SliceStable(out, func(i, j int) bool {
+		a, b := out[i], out[j]
+		if a.Pinned != b.Pinned {
+			return a.Pinned // pinned first
 		}
-	}
-	return append(pinned, rest...)
+		switch m.sortMode {
+		case sortRecent:
+			if la, lb := m.worklogStats[a.ID].lastDate, m.worklogStats[b.ID].lastDate; la != lb {
+				return la > lb // later date first; no logs ("") sorts last
+			}
+		case sortMost:
+			if ta, tb := m.worklogStats[a.ID].totalSeconds, m.worklogStats[b.ID].totalSeconds; ta != tb {
+				return ta > tb
+			}
+		}
+		return false // keep incoming order (stable)
+	})
+	return out
 }

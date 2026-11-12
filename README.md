@@ -120,6 +120,7 @@ Tokens are never logged or printed.
 | `d` | delete worklog (with confirmation) |
 | `c` | change account on selected worklog |
 | `/` | free-text search issues (see below) |
+| `s` | cycle issue sort (default → recently logged → most logged) |
 | `p` | pin / unpin issue |
 | `r` | refresh from the API |
 | `?` | toggle full help |

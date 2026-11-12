@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The form also resizes with the terminal window.
 
 ### Added
+- Press `s` to cycle the issue list sort: default (recently updated), recently
+  logged, or most logged — using per-issue totals and last-logged dates
+  aggregated from the recent (30-day) worklog window. Pinned issues stay first
+  and the active sort shows in the panel title.
 - Issue search falls back to a direct Jira search when nothing in the loaded
   list matches: after a short debounce it queries Jira (key match for a
   key-looking query, otherwise a text search) across all issues the account can
