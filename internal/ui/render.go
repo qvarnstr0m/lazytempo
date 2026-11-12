@@ -84,6 +84,9 @@ func (m Model) renderIssues(width, height int) string {
 	if m.searching || m.search.Value() != "" {
 		b.WriteString(m.search.View())
 		b.WriteString("\n")
+		if m.searching {
+			b.WriteString(m.theme.Muted.Render("↓/tab: select · esc: clear") + "\n")
+		}
 	}
 
 	if len(vis) == 0 {

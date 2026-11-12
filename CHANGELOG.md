@@ -18,8 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The issue search (`/`) is now multi-word free text: every word must appear in
   an issue's key, summary or project key (e.g. `proj login`). The panel
-  title shows the match count, you can move the selection with the arrow keys
-  (or `ctrl+p`/`ctrl+n`) while typing, and an empty result shows a clear message.
+  title shows the match count and an empty result shows a clear message. All
+  characters stay typeable; press `↓`, `tab` or `enter` to move focus from the
+  search box into the results (keeping the filter), where `j`/`k` and the
+  command keys (`a`/`e`/`d`/`c`/`p`) act on the highlighted issue immediately.
 - The worklog form now records start and end time via 5-minute dropdowns in
   24-hour European format (e.g. 16:05) instead of a free-text duration; the time
   spent is derived from the range (end must be after start). For a new worklog

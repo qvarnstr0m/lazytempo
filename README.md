@@ -121,8 +121,10 @@ word** appears in the key, summary or project key. So `proj login`,
 `core report` or a raw key like `CORE-603` all work. The panel title shows the
 match count (e.g. `Issues (3/48)`).
 
-While typing you can move the selection with `↑`/`↓` (or `ctrl+p`/`ctrl+n`);
-`enter` keeps the filter and returns to normal `j`/`k` navigation, and `esc`
+Every character is typeable in the query. Press `↓`, `tab` or `enter` to move
+focus from the search box into the results (keeping the filter) — the
+highlighted issue stays selected, so `j`/`k` navigation and the command keys
+(`a`, `e`, `d`, `c`, `p`) act on it immediately without any further step. `esc`
 clears the search.
 
 ## Time input

@@ -420,22 +420,13 @@ func (m Model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.search.SetValue("")
 		m.issueCursor = 0
 		return m, nil
-	case "enter":
-		// Commit the current selection: keep the filter, leave the input so
-		// j/k navigation takes over.
+	case "enter", "tab", "down", "ctrl+n":
+		// Move focus from the search box into the results, keeping the filter.
+		// The highlighted issue stays selected, so j/k navigation and the
+		// command keys (a/e/d/c/p) act on it immediately — no Enter needed, and
+		// every character remains typeable while the box is focused.
 		m.searching = false
 		m.search.Blur()
-		return m, m.ensureLinksForSelectedIssue()
-	case "down", "ctrl+n":
-		// Move the selection through the filtered results without leaving search.
-		if m.issueCursor < len(m.visibleIssues())-1 {
-			m.issueCursor++
-		}
-		return m, m.ensureLinksForSelectedIssue()
-	case "up", "ctrl+p":
-		if m.issueCursor > 0 {
-			m.issueCursor--
-		}
 		return m, m.ensureLinksForSelectedIssue()
 	}
 

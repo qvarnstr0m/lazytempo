@@ -4,9 +4,55 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 
 	"lazytempo/internal/domain"
 )
+
+func searchingModel(value string) Model {
+	ti := textinput.New()
+	ti.SetValue(value)
+	ti.Focus()
+	return Model{search: ti, searching: true, focused: panelIssues,
+		issues: sampleIssues()}
+}
+
+func TestSearchDownFocusesList(t *testing.T) {
+	// ↓ / tab / enter move focus into the list, keeping the filter, so command
+	// keys act on the highlighted issue without an extra step.
+	for _, key := range []tea.KeyMsg{
+		{Type: tea.KeyDown},
+		{Type: tea.KeyTab},
+		{Type: tea.KeyEnter},
+	} {
+		m := searchingModel("core")
+		res, _ := m.updateSearch(key)
+		mm := res.(Model)
+		if mm.searching {
+			t.Errorf("%v: expected searching=false (focus moved to list)", key)
+		}
+		if mm.search.Focused() {
+			t.Errorf("%v: expected search input blurred", key)
+		}
+		if mm.search.Value() != "core" {
+			t.Errorf("%v: filter should be kept, got %q", key, mm.search.Value())
+		}
+	}
+}
+
+func TestSearchLettersStillType(t *testing.T) {
+	// A command letter like 'a' is typed into the query while searching, not
+	// treated as a command.
+	m := searchingModel("p")
+	res, _ := m.updateSearch(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	mm := res.(Model)
+	if !mm.searching {
+		t.Error("typing a letter should stay in search mode")
+	}
+	if mm.search.Value() != "pa" {
+		t.Errorf("expected query 'pa', got %q", mm.search.Value())
+	}
+}
 
 func TestResumeSearchIfFiltered(t *testing.T) {
 	m := &Model{search: textinput.New(), focused: panelIssues}
