@@ -270,7 +270,9 @@ func formContentWidth(total int) int {
 // renderFullHelp renders the full keybinding help.
 func (m Model) renderFullHelp(height int) string {
 	m.help.ShowAll = true
-	content := m.theme.TitleFocused.Render("Keybindings") + "\n\n" + m.help.View(m.keys)
+	content := m.theme.TitleFocused.Render("Keybindings") + "\n\n" +
+		m.help.View(m.keys) + "\n\n" +
+		m.theme.Muted.Render("press ? or esc to return")
 	box := m.theme.PanelFocused.Width(minInt(m.width-2, 70)).Render(content)
 	return lipgloss.Place(m.width, height, lipgloss.Center, lipgloss.Center, box)
 }

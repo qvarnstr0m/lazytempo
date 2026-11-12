@@ -281,6 +281,18 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateSearch(msg)
 	}
 
+	// Help overlay is modal: esc, q or ? closes it and returns to the main view;
+	// ctrl+c still quits the app.
+	if m.showHelp {
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		case "?", "esc", "q":
+			m.showHelp = false
+		}
+		return m, nil
+	}
+
 	switch {
 	case key.Matches(msg, m.keys.Quit):
 		return m, tea.Quit

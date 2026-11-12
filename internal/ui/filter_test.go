@@ -72,6 +72,20 @@ func TestUpAtTopReturnsToSearch(t *testing.T) {
 	}
 }
 
+func TestHelpOverlayCloses(t *testing.T) {
+	for _, k := range []tea.KeyMsg{
+		{Type: tea.KeyEsc},
+		{Type: tea.KeyRunes, Runes: []rune{'?'}},
+		{Type: tea.KeyRunes, Runes: []rune{'q'}},
+	} {
+		m := Model{showHelp: true, keys: DefaultKeyMap()}
+		res, _ := m.handleKey(k)
+		if res.(Model).showHelp {
+			t.Errorf("%v should close the help overlay", k)
+		}
+	}
+}
+
 func TestSearchLettersStillType(t *testing.T) {
 	// A command letter like 'a' is typed into the query while searching, not
 	// treated as a command.
