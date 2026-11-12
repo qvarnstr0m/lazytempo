@@ -103,6 +103,46 @@ func countRunes(s string, r rune) int {
 	return n
 }
 
+func TestWeekWorklogCrossDayNav(t *testing.T) {
+	// Mon (idx 0) has 2 worklogs, Thu (idx 3) has 1; Tue/Wed are empty.
+	days := make([]domain.Day, 7)
+	days[0].Worklogs = []domain.Worklog{{ID: 1}, {ID: 2}}
+	days[3].Worklogs = []domain.Worklog{{ID: 3}}
+	m := Model{keys: DefaultKeyMap(), focused: panelWeek, days: days}
+
+	// Start on the first worklog of Thu; up should jump to the last of Mon.
+	m.selectedDay, m.worklogCursor = 3, 0
+	res, _ := m.handleWeekKey(tea.KeyMsg{Type: tea.KeyUp})
+	mm := res.(Model)
+	if mm.selectedDay != 0 || mm.worklogCursor != 1 {
+		t.Fatalf("up from Thu[0] -> day %d cursor %d, want day 0 cursor 1", mm.selectedDay, mm.worklogCursor)
+	}
+
+	// Down from the last worklog of Mon should jump to the first of Thu.
+	mm.selectedDay, mm.worklogCursor = 0, 1
+	res, _ = mm.handleWeekKey(tea.KeyMsg{Type: tea.KeyDown})
+	mm = res.(Model)
+	if mm.selectedDay != 3 || mm.worklogCursor != 0 {
+		t.Fatalf("down from Mon[last] -> day %d cursor %d, want day 3 cursor 0", mm.selectedDay, mm.worklogCursor)
+	}
+
+	// At the very top (Mon[0]), up stays put.
+	mm.selectedDay, mm.worklogCursor = 0, 0
+	res, _ = mm.handleWeekKey(tea.KeyMsg{Type: tea.KeyUp})
+	mm = res.(Model)
+	if mm.selectedDay != 0 || mm.worklogCursor != 0 {
+		t.Errorf("up at top moved to day %d cursor %d, want day 0 cursor 0", mm.selectedDay, mm.worklogCursor)
+	}
+
+	// At the very bottom (Thu[0], its only one), down stays put.
+	mm.selectedDay, mm.worklogCursor = 3, 0
+	res, _ = mm.handleWeekKey(tea.KeyMsg{Type: tea.KeyDown})
+	mm = res.(Model)
+	if mm.selectedDay != 3 || mm.worklogCursor != 0 {
+		t.Errorf("down at bottom moved to day %d cursor %d, want day 3 cursor 0", mm.selectedDay, mm.worklogCursor)
+	}
+}
+
 func TestHelpOverlayCloses(t *testing.T) {
 	for _, k := range []tea.KeyMsg{
 		{Type: tea.KeyEsc},

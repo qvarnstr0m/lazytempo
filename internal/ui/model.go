@@ -380,13 +380,23 @@ func (m Model) handleIssuesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleWeekKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Down):
+		// Move down within the day; at the last worklog, continue into the first
+		// worklog of the next day that has any.
 		if n := len(m.currentDayWorklogs()); n > 0 && m.worklogCursor < n-1 {
 			m.worklogCursor++
+		} else if nd := m.nextDayWithWorklogs(m.selectedDay); nd >= 0 {
+			m.selectedDay = nd
+			m.worklogCursor = 0
 		}
 		return m, nil
 	case key.Matches(msg, m.keys.Up):
+		// Move up within the day; at the first worklog, continue into the last
+		// worklog of the previous day that has any.
 		if m.worklogCursor > 0 {
 			m.worklogCursor--
+		} else if pd := m.prevDayWithWorklogs(m.selectedDay); pd >= 0 {
+			m.selectedDay = pd
+			m.worklogCursor = len(m.days[pd].Worklogs) - 1
 		}
 		return m, nil
 	case key.Matches(msg, m.keys.NextDay):
@@ -646,6 +656,28 @@ func (m Model) issueByID(id string) *domain.Issue {
 		}
 	}
 	return nil
+}
+
+// nextDayWithWorklogs returns the first day index after `from` that has any
+// worklogs, or -1 when there is none.
+func (m Model) nextDayWithWorklogs(from int) int {
+	for i := from + 1; i < len(m.days); i++ {
+		if len(m.days[i].Worklogs) > 0 {
+			return i
+		}
+	}
+	return -1
+}
+
+// prevDayWithWorklogs returns the last day index before `from` that has any
+// worklogs, or -1 when there is none.
+func (m Model) prevDayWithWorklogs(from int) int {
+	for i := from - 1; i >= 0; i-- {
+		if len(m.days[i].Worklogs) > 0 {
+			return i
+		}
+	}
+	return -1
 }
 
 func (m Model) currentDayWorklogs() []domain.Worklog {
