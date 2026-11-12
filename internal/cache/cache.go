@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -23,13 +24,17 @@ const cacheVersion = 2
 
 // Data is the serialisable cache payload.
 type Data struct {
-	Version        int                    `json:"version"`
-	UpdatedAt      time.Time              `json:"updated_at"`
-	AccountID      string                 `json:"account_id"`
-	AccountAttrKey string                 `json:"account_attr_key"`
-	Issues         []domain.Issue         `json:"issues"`
-	Accounts       []domain.Account       `json:"accounts"`
-	WorkAttributes []domain.WorkAttribute `json:"work_attributes"`
+	Version        int            `json:"version"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	AccountID      string         `json:"account_id"`
+	AccountAttrKey string         `json:"account_attr_key"`
+	Issues         []domain.Issue `json:"issues"`
+	// WorklogIssues holds issues discovered from Tempo worklogs (keyed by issue
+	// id). They are kept separate from JQL Issues so a JQL refresh does not drop
+	// issues you have logged time on but that no JQL surfaces.
+	WorklogIssues  map[string]domain.Issue `json:"worklog_issues"`
+	Accounts       []domain.Account        `json:"accounts"`
+	WorkAttributes []domain.WorkAttribute  `json:"work_attributes"`
 	// AccountLinks is keyed by projectID.
 	AccountLinks map[string][]domain.AccountLink `json:"account_links"`
 	// LastAccountByIssue maps issueID -> last used account key.
@@ -69,6 +74,7 @@ func Open() (*Cache, error) {
 		path: path,
 		data: Data{
 			AccountLinks:       map[string][]domain.AccountLink{},
+			WorklogIssues:      map[string]domain.Issue{},
 			LastAccountByIssue: map[string]string{},
 			Pinned:             map[string]bool{},
 		},
@@ -107,6 +113,9 @@ func normalize(d Data) Data {
 	if d.AccountLinks == nil {
 		d.AccountLinks = map[string][]domain.AccountLink{}
 	}
+	if d.WorklogIssues == nil {
+		d.WorklogIssues = map[string]domain.Issue{}
+	}
 	if d.LastAccountByIssue == nil {
 		d.LastAccountByIssue = map[string]string{}
 	}
@@ -123,24 +132,60 @@ func (c *Cache) Snapshot() Data {
 	return c.data
 }
 
-// Issues returns the cached issues, with pins applied.
+// Issues returns the cached issues with pins applied: the JQL issues first,
+// followed by any worklog-sourced issues not already present (by id).
 func (c *Cache) Issues() []domain.Issue {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	out := make([]domain.Issue, len(c.data.Issues))
-	copy(out, c.data.Issues)
-	for i := range out {
-		out[i].Pinned = c.data.Pinned[out[i].Key]
+
+	out := make([]domain.Issue, 0, len(c.data.Issues)+len(c.data.WorklogIssues))
+	seen := make(map[string]bool, len(c.data.Issues))
+	for _, iss := range c.data.Issues {
+		iss.Pinned = c.data.Pinned[iss.Key]
+		out = append(out, iss)
+		if iss.ID != "" {
+			seen[iss.ID] = true
+		}
+	}
+	// Append worklog-sourced issues not already in the JQL list, in a stable
+	// (id-sorted) order so the list does not jump around between renders.
+	extra := make([]string, 0, len(c.data.WorklogIssues))
+	for id := range c.data.WorklogIssues {
+		if !seen[id] {
+			extra = append(extra, id)
+		}
+	}
+	sort.Strings(extra)
+	for _, id := range extra {
+		iss := c.data.WorklogIssues[id]
+		iss.Pinned = c.data.Pinned[iss.Key]
+		out = append(out, iss)
 	}
 	return out
 }
 
-// SetIssues replaces the cached issue list.
+// SetIssues replaces the cached JQL issue list (worklog-sourced issues are
+// untouched).
 func (c *Cache) SetIssues(issues []domain.Issue) {
 	c.mu.Lock()
 	c.data.Issues = issues
 	c.data.UpdatedAt = time.Now()
 	c.mu.Unlock()
+}
+
+// MergeWorklogIssues records issues discovered from Tempo worklogs so they
+// appear in the list even when no JQL surfaces them.
+func (c *Cache) MergeWorklogIssues(issues []domain.Issue) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.data.WorklogIssues == nil {
+		c.data.WorklogIssues = map[string]domain.Issue{}
+	}
+	for _, iss := range issues {
+		if iss.ID != "" {
+			c.data.WorklogIssues[iss.ID] = iss
+		}
+	}
 }
 
 // SetReference stores accounts, work attributes and the resolved account id/key.

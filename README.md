@@ -29,9 +29,11 @@ runtime dependencies.
  1h30m, 1.5h, …          tab switch · a add · e edit · d delete · q quit
 ```
 
-- **Left — Issues:** issues you are involved with — assigned, logged time on,
-  reported, recently viewed or watched (configurable JQL) — plus pinned
-  favorites.
+- **Left — Issues:** issues you are involved with — assigned, reported,
+  recently viewed or watched (configurable JQL) — **plus every issue you have
+  logged time on** (seeded from your recent Tempo worklogs and resolved back to
+  Jira, so they appear even when Tempo worklogs are not synced to Jira) — plus
+  pinned favorites.
 - **Center — Week:** worklogs per day, totals per day/week against a target
   (default 8h/day). Days at or above target are green, below target yellow.
 - **Right — Details:** the selected issue or worklog.

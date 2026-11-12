@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - The default issue list now includes issues you are involved with — assigned,
-  logged time on (`worklogAuthor`), reported, recently viewed (`issueHistory()`)
-  or watching (`watchedIssues()`) — updated within the last 30 days, instead of
-  only issues assigned to you. Override via `my_issues_jql` /
-  `LAZYTEMPO_MY_ISSUES_JQL`.
+  reported, recently viewed (`issueHistory()`) or watching (`watchedIssues()`) —
+  updated within the last 30 days, instead of only issues assigned to you.
+  Override via `my_issues_jql` / `LAZYTEMPO_MY_ISSUES_JQL`.
+- The issue list is additionally seeded from your recent (last 30 days) Tempo
+  worklogs: their issue ids are resolved back to Jira issues and merged in, so
+  issues you have logged time on always appear — even when Tempo worklogs are
+  not synced to Jira worklogs and no JQL can find them. Worklog-sourced issues
+  survive a JQL refresh and are cached for instant display next launch. This
+  also lets you edit/add time on such issues directly.
 
 ### Added
 - Initial MVP:

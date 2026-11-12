@@ -23,6 +23,10 @@ type Client interface {
 	Myself(ctx context.Context) (string, error)
 	// SearchIssues runs a JQL query and returns matching issues.
 	SearchIssues(ctx context.Context, jql string, maxResults int) ([]domain.Issue, error)
+	// IssuesByIDs resolves issues by their numeric ids (as returned by Tempo
+	// worklogs). Used to list issues you have logged time on but that no Jira
+	// JQL surfaces (e.g. when Tempo worklogs are not synced to Jira).
+	IssuesByIDs(ctx context.Context, ids []string) ([]domain.Issue, error)
 }
 
 // HTTPClient is the concrete Client backed by the Jira Cloud REST API.
@@ -145,6 +149,34 @@ func (c *HTTPClient) SearchIssues(ctx context.Context, jql string, maxResults in
 		token = out.NextPageToken
 	}
 	return issues, nil
+}
+
+// IssuesByIDs implements Client, resolving issues by numeric id via
+// `id IN (...)`. Ids are filtered to digits to keep the JQL safe.
+func (c *HTTPClient) IssuesByIDs(ctx context.Context, ids []string) ([]domain.Issue, error) {
+	clean := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if isDigits(id) {
+			clean = append(clean, id)
+		}
+	}
+	if len(clean) == 0 {
+		return nil, nil
+	}
+	jql := "id IN (" + strings.Join(clean, ",") + ") ORDER BY updated DESC"
+	return c.SearchIssues(ctx, jql, len(clean))
+}
+
+func isDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // EscapeJQL is a tiny helper for building key-based lookups safely.

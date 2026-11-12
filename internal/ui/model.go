@@ -154,7 +154,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.accountID = msg.accountID
 		m.accountAttrKey = msg.attrKey
 		m.svc.SetAccountID(msg.accountID)
-		return m, m.startLoad(m.svc.LoadWorklogs(m.weekStart))
+		to := time.Now().Format(dateLayout)
+		from := time.Now().AddDate(0, 0, -30).Format(dateLayout)
+		return m, tea.Batch(
+			m.startLoad(m.svc.LoadWorklogs(m.weekStart)),
+			m.startLoad(m.svc.SeedIssuesFromWorklogs(from, to)),
+		)
 
 	case issuesLoadedMsg:
 		m.loading--
@@ -174,6 +179,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if msg.from.Equal(m.weekStart) {
 			m.rebuildDays(msg.worklogs)
+		}
+		// Resolve any logged issues not already in the list (e.g. when viewing a
+		// week outside the initial 30-day seed window).
+		if missing := m.missingIssueIDs(msg.worklogs); len(missing) > 0 {
+			return m, m.startLoad(m.svc.ResolveIssues(missing))
+		}
+		return m, nil
+
+	case worklogIssuesLoadedMsg:
+		m.loading--
+		if msg.err != nil {
+			m.setError(fmt.Sprintf("resolve logged issues failed: %v", msg.err))
+			return m, nil
+		}
+		if len(msg.issues) > 0 {
+			m.issues = m.cache.Issues()
+			m.clampIssueCursor()
 		}
 		return m, nil
 
@@ -273,9 +295,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.focused = panelDetails
 		return m, nil
 	case key.Matches(msg, m.keys.Refresh):
+		to := time.Now().Format(dateLayout)
+		from := time.Now().AddDate(0, 0, -30).Format(dateLayout)
 		return m, tea.Batch(
 			m.startLoad(m.svc.LoadIssues()),
 			m.startLoad(m.svc.LoadWorklogs(m.weekStart)),
+			m.startLoad(m.svc.SeedIssuesFromWorklogs(from, to)),
 		)
 	case key.Matches(msg, m.keys.Search):
 		m.searching = true
@@ -541,6 +566,23 @@ func (m Model) selectedIssue() *domain.Issue {
 		return nil
 	}
 	return &vis[m.issueCursor]
+}
+
+// missingIssueIDs returns the distinct issue ids referenced by the worklogs that
+// are not yet present in the loaded issue list.
+func (m Model) missingIssueIDs(worklogs []domain.Worklog) []string {
+	seen := map[string]bool{}
+	var missing []string
+	for _, w := range worklogs {
+		if w.IssueID == "" || seen[w.IssueID] {
+			continue
+		}
+		seen[w.IssueID] = true
+		if m.issueByID(w.IssueID) == nil {
+			missing = append(missing, w.IssueID)
+		}
+	}
+	return missing
 }
 
 func (m Model) issueByID(id string) *domain.Issue {

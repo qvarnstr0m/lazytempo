@@ -53,6 +53,12 @@ type worklogsLoadedMsg struct {
 	err      error
 }
 
+// worklogIssuesLoadedMsg carries issues resolved from Tempo worklog issue ids.
+type worklogIssuesLoadedMsg struct {
+	issues []domain.Issue
+	err    error
+}
+
 type accountLinksLoadedMsg struct {
 	projectID string
 	err       error
@@ -141,6 +147,61 @@ func (s *Service) LoadWorklogs(weekStart time.Time) tea.Cmd {
 		}
 		return worklogsLoadedMsg{from: weekStart, worklogs: worklogs}
 	}
+}
+
+// SeedIssuesFromWorklogs fetches the user's Tempo worklogs over a date range,
+// collects the distinct issue ids, resolves them to Jira issues and merges them
+// into the issue list. This surfaces issues you have logged time on even when
+// Jira JQL cannot find them (e.g. Tempo worklogs not synced to Jira).
+func (s *Service) SeedIssuesFromWorklogs(from, to string) tea.Cmd {
+	return func() tea.Msg {
+		if s.accountID == "" {
+			return worklogIssuesLoadedMsg{}
+		}
+		c, cancel := ctx()
+		defer cancel()
+		worklogs, err := s.tempo.Worklogs(c, s.accountID, from, to)
+		if err != nil {
+			return worklogIssuesLoadedMsg{err: err}
+		}
+		return s.resolveAndMerge(c, distinctIssueIDs(worklogs))
+	}
+}
+
+// ResolveIssues resolves the given issue ids to Jira issues and merges them.
+func (s *Service) ResolveIssues(ids []string) tea.Cmd {
+	return func() tea.Msg {
+		if len(ids) == 0 {
+			return worklogIssuesLoadedMsg{}
+		}
+		c, cancel := ctx()
+		defer cancel()
+		return s.resolveAndMerge(c, ids)
+	}
+}
+
+func (s *Service) resolveAndMerge(c context.Context, ids []string) tea.Msg {
+	if len(ids) == 0 {
+		return worklogIssuesLoadedMsg{}
+	}
+	issues, err := s.jira.IssuesByIDs(c, ids)
+	if err != nil {
+		return worklogIssuesLoadedMsg{err: err}
+	}
+	s.cache.MergeWorklogIssues(issues)
+	return worklogIssuesLoadedMsg{issues: issues}
+}
+
+func distinctIssueIDs(worklogs []domain.Worklog) []string {
+	seen := map[string]bool{}
+	var ids []string
+	for _, w := range worklogs {
+		if w.IssueID != "" && !seen[w.IssueID] {
+			seen[w.IssueID] = true
+			ids = append(ids, w.IssueID)
+		}
+	}
+	return ids
 }
 
 // LoadAccountLinks fetches and caches the account links for a project.

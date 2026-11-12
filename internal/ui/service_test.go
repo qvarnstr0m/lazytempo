@@ -37,6 +37,20 @@ func (m *mockJira) Myself(context.Context) (string, error) { return m.accountID,
 func (m *mockJira) SearchIssues(context.Context, string, int) ([]domain.Issue, error) {
 	return m.issues, m.err
 }
+func (m *mockJira) IssuesByIDs(_ context.Context, ids []string) ([]domain.Issue, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	var out []domain.Issue
+	for _, iss := range m.issues {
+		for _, id := range ids {
+			if iss.ID == id {
+				out = append(out, iss)
+			}
+		}
+	}
+	return out, nil
+}
 
 type mockTempo struct {
 	attrs      []domain.WorkAttribute
@@ -128,6 +142,53 @@ func TestSaveWorklogEnforcesAccount(t *testing.T) {
 	}
 	if tp.created == nil || tp.created.AccountKey != "CORE" {
 		t.Errorf("account not sent to API: %+v", tp.created)
+	}
+}
+
+func TestSeedIssuesFromWorklogs(t *testing.T) {
+	// Jira JQL surfaces only A-1; the user has logged time on CORE-5 (id 10119),
+	// which no JQL finds. Seeding from Tempo worklogs must add it to the list.
+	j := &mockJira{issues: []domain.Issue{
+		{ID: "1", Key: "A-1", ProjectID: "100"},
+		{ID: "10119", Key: "CORE-5", ProjectID: "200"},
+	}}
+	tp := &mockTempo{worklogs: []domain.Worklog{
+		{ID: 5, IssueID: "10119", AccountKey: "CORE"},
+	}}
+	svc, c := newTestService(j, tp)
+	svc.SetAccountID("acc-1")
+
+	// Only the JQL issue is present at first.
+	msg := svc.LoadIssues()().(issuesLoadedMsg)
+	if msg.err != nil {
+		t.Fatal(msg.err)
+	}
+
+	seed := svc.SeedIssuesFromWorklogs("2026-10-13", "2026-11-12")().(worklogIssuesLoadedMsg)
+	if seed.err != nil {
+		t.Fatalf("seed err: %v", seed.err)
+	}
+	if len(seed.issues) != 1 || seed.issues[0].Key != "CORE-5" {
+		t.Fatalf("expected CORE-5 resolved, got %+v", seed.issues)
+	}
+
+	// The merged list now contains both the JQL issue and the logged one.
+	keys := map[string]bool{}
+	for _, iss := range c.Issues() {
+		keys[iss.Key] = true
+	}
+	if !keys["A-1"] || !keys["CORE-5"] {
+		t.Errorf("expected both A-1 and CORE-5 in list, got %v", keys)
+	}
+
+	// A JQL refresh must not drop the worklog-sourced issue.
+	svc.LoadIssues()()
+	keys = map[string]bool{}
+	for _, iss := range c.Issues() {
+		keys[iss.Key] = true
+	}
+	if !keys["CORE-5"] {
+		t.Error("worklog-sourced issue should survive a JQL refresh")
 	}
 }
 
