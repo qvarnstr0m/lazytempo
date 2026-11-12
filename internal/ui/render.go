@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -68,9 +69,14 @@ func clampW(w int) int {
 // renderIssues renders the left "My issues" panel.
 func (m Model) renderIssues(width, height int) string {
 	var b strings.Builder
+	vis := m.visibleIssues()
+
 	title := "Issues"
+	if m.search.Value() != "" {
+		title = fmt.Sprintf("Issues (%d/%d)", len(vis), len(m.issues))
+	}
 	if m.loading > 0 {
-		title = fmt.Sprintf("Issues %s", m.spinner.View())
+		title = fmt.Sprintf("%s %s", title, m.spinner.View())
 	}
 	b.WriteString(m.theme.title(m.focused == panelIssues, title))
 	b.WriteString("\n")
@@ -80,9 +86,12 @@ func (m Model) renderIssues(width, height int) string {
 		b.WriteString("\n")
 	}
 
-	vis := m.visibleIssues()
 	if len(vis) == 0 {
-		b.WriteString(m.theme.Muted.Render("no issues"))
+		msg := "no issues"
+		if m.search.Value() != "" {
+			msg = "no matches for " + strconv.Quote(m.search.Value())
+		}
+		b.WriteString(m.theme.Muted.Render(msg))
 		return b.String()
 	}
 

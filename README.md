@@ -107,11 +107,23 @@ Tokens are never logged or printed.
 | `e` | edit selected worklog |
 | `d` | delete worklog (with confirmation) |
 | `c` | change account on selected worklog |
-| `/` | search issues (also by key, e.g. `PROJ-123`) |
+| `/` | free-text search issues (see below) |
 | `p` | pin / unpin issue |
 | `r` | refresh from the API |
 | `?` | toggle full help |
 | `q`, `ctrl+c` | quit |
+
+## Searching issues
+
+Press `/` to filter the issue list as you type. The search is free-text and
+case-insensitive: it splits your query into words and keeps issues where **every
+word** appears in the key, summary or project key. So `proj login`,
+`core report` or a raw key like `CORE-603` all work. The panel title shows the
+match count (e.g. `Issues (3/48)`).
+
+While typing you can move the selection with `↑`/`↓` (or `ctrl+p`/`ctrl+n`);
+`enter` keeps the filter and returns to normal `j`/`k` navigation, and `esc`
+clears the search.
 
 ## Time input
 

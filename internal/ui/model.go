@@ -409,14 +409,32 @@ func (m Model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.issueCursor = 0
 		return m, nil
 	case "enter":
+		// Commit the current selection: keep the filter, leave the input so
+		// j/k navigation takes over.
 		m.searching = false
 		m.search.Blur()
-		m.issueCursor = 0
+		return m, m.ensureLinksForSelectedIssue()
+	case "down", "ctrl+n":
+		// Move the selection through the filtered results without leaving search.
+		if m.issueCursor < len(m.visibleIssues())-1 {
+			m.issueCursor++
+		}
+		return m, m.ensureLinksForSelectedIssue()
+	case "up", "ctrl+p":
+		if m.issueCursor > 0 {
+			m.issueCursor--
+		}
 		return m, m.ensureLinksForSelectedIssue()
 	}
+
+	prev := m.search.Value()
 	var cmd tea.Cmd
 	m.search, cmd = m.search.Update(msg)
-	m.issueCursor = 0
+	// Only reset the cursor when the query actually changed, so it stays put
+	// while you move the text caret.
+	if m.search.Value() != prev {
+		m.issueCursor = 0
+	}
 	return m, cmd
 }
 
@@ -627,21 +645,32 @@ func (m *Model) setError(s string) {
 	m.statusErr = true
 }
 
-// filterIssues keeps issues whose key or summary contains the query (case
-// insensitive). An exact-looking key match is prioritised.
+// filterIssues keeps issues matching a free-text query. The query is split into
+// whitespace-separated terms; an issue matches when every term is a
+// case-insensitive substring of its key, summary or project key. This makes
+// queries like "proj login" or "core report" work intuitively.
 func filterIssues(issues []domain.Issue, query string) []domain.Issue {
-	query = strings.TrimSpace(strings.ToLower(query))
-	if query == "" {
+	terms := strings.Fields(strings.ToLower(query))
+	if len(terms) == 0 {
 		return issues
 	}
 	var out []domain.Issue
 	for _, i := range issues {
-		if strings.Contains(strings.ToLower(i.Key), query) ||
-			strings.Contains(strings.ToLower(i.Summary), query) {
+		haystack := strings.ToLower(i.Key + " " + i.Summary + " " + i.ProjectKey)
+		if matchesAllTerms(haystack, terms) {
 			out = append(out, i)
 		}
 	}
 	return out
+}
+
+func matchesAllTerms(haystack string, terms []string) bool {
+	for _, t := range terms {
+		if !strings.Contains(haystack, t) {
+			return false
+		}
+	}
+	return true
 }
 
 // sortIssues puts pinned issues first, preserving relative order otherwise.
