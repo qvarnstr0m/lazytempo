@@ -2,10 +2,13 @@ package ui
 
 import (
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
+	"lazytempo/internal/cache"
+	"lazytempo/internal/config"
 	"lazytempo/internal/domain"
 )
 
@@ -103,43 +106,78 @@ func countRunes(s string, r rune) int {
 	return n
 }
 
-func TestWeekWorklogCrossDayNav(t *testing.T) {
-	// Mon (idx 0) has 2 worklogs, Thu (idx 3) has 1; Tue/Wed are empty.
+func weekNavModel() Model {
+	// Mon (idx 0) has 2 worklogs, Thu (idx 3) has 1; Tue/Wed/weekend empty.
 	days := make([]domain.Day, 7)
 	days[0].Worklogs = []domain.Worklog{{ID: 1}, {ID: 2}}
 	days[3].Worklogs = []domain.Worklog{{ID: 3}}
-	m := Model{keys: DefaultKeyMap(), focused: panelWeek, days: days}
+	c, _ := cache.Open()
+	svc := NewService(config.Default(), &mockJira{}, &mockTempo{}, c)
+	return Model{
+		keys: DefaultKeyMap(), focused: panelWeek, days: days, svc: svc,
+		weekStart: weekStart(timeDate(2026, 11, 9)),
+	}
+}
 
-	// Start on the first worklog of Thu; up should jump to the last of Mon.
+func timeDate(y, mo, d int) time.Time { return time.Date(y, time.Month(mo), d, 0, 0, 0, 0, time.Local) }
+
+func weekKey(m Model, kt tea.KeyType) Model {
+	res, _ := m.handleWeekKey(tea.KeyMsg{Type: kt})
+	return res.(Model)
+}
+
+func TestWeekWorklogCrossDayNav(t *testing.T) {
+	m := weekNavModel()
+
+	// First worklog of Thu; up jumps to the last of Mon.
 	m.selectedDay, m.worklogCursor = 3, 0
-	res, _ := m.handleWeekKey(tea.KeyMsg{Type: tea.KeyUp})
-	mm := res.(Model)
+	mm := weekKey(m, tea.KeyUp)
 	if mm.selectedDay != 0 || mm.worklogCursor != 1 {
 		t.Fatalf("up from Thu[0] -> day %d cursor %d, want day 0 cursor 1", mm.selectedDay, mm.worklogCursor)
 	}
 
-	// Down from the last worklog of Mon should jump to the first of Thu.
+	// Last worklog of Mon; down jumps to the first of Thu.
 	mm.selectedDay, mm.worklogCursor = 0, 1
-	res, _ = mm.handleWeekKey(tea.KeyMsg{Type: tea.KeyDown})
-	mm = res.(Model)
+	mm = weekKey(mm, tea.KeyDown)
 	if mm.selectedDay != 3 || mm.worklogCursor != 0 {
 		t.Fatalf("down from Mon[last] -> day %d cursor %d, want day 3 cursor 0", mm.selectedDay, mm.worklogCursor)
 	}
+}
 
-	// At the very top (Mon[0]), up stays put.
-	mm.selectedDay, mm.worklogCursor = 0, 0
-	res, _ = mm.handleWeekKey(tea.KeyMsg{Type: tea.KeyUp})
-	mm = res.(Model)
-	if mm.selectedDay != 0 || mm.worklogCursor != 0 {
-		t.Errorf("up at top moved to day %d cursor %d, want day 0 cursor 0", mm.selectedDay, mm.worklogCursor)
+func TestWeekWorklogCrossWeek(t *testing.T) {
+	m := weekNavModel()
+	start := m.weekStart
+
+	// At the very top (Mon[0]), up crosses to the previous week, pending "last".
+	m.selectedDay, m.worklogCursor = 0, 0
+	mm := weekKey(m, tea.KeyUp)
+	if !mm.weekStart.Equal(start.AddDate(0, 0, -7)) {
+		t.Errorf("up at top: weekStart = %v, want previous week", mm.weekStart)
+	}
+	if mm.pendingWorklog != selectLast {
+		t.Errorf("up at top: pending = %v, want selectLast", mm.pendingWorklog)
 	}
 
-	// At the very bottom (Thu[0], its only one), down stays put.
-	mm.selectedDay, mm.worklogCursor = 3, 0
-	res, _ = mm.handleWeekKey(tea.KeyMsg{Type: tea.KeyDown})
-	mm = res.(Model)
+	// At the very bottom (Thu[0], its only one), down crosses to the next week.
+	m = weekNavModel()
+	m.selectedDay, m.worklogCursor = 3, 0
+	mm = weekKey(m, tea.KeyDown)
+	if !mm.weekStart.Equal(start.AddDate(0, 0, 7)) {
+		t.Errorf("down at bottom: weekStart = %v, want next week", mm.weekStart)
+	}
+	if mm.pendingWorklog != selectFirst {
+		t.Errorf("down at bottom: pending = %v, want selectFirst", mm.pendingWorklog)
+	}
+
+	// Once the new week's worklogs load, "last" lands on the last worklog.
+	mm.days = weekNavModel().days // simulate the loaded week having the same shape
+	mm.pendingWorklog = selectLast
+	mm.applyPendingWorklog()
 	if mm.selectedDay != 3 || mm.worklogCursor != 0 {
-		t.Errorf("down at bottom moved to day %d cursor %d, want day 3 cursor 0", mm.selectedDay, mm.worklogCursor)
+		t.Errorf("applyPendingWorklog(last) -> day %d cursor %d, want day 3 cursor 0", mm.selectedDay, mm.worklogCursor)
+	}
+	if mm.pendingWorklog != selectNone {
+		t.Error("pending should be cleared after applying")
 	}
 }
 

@@ -26,6 +26,16 @@ const (
 	panelCount
 )
 
+// pendingSelect records where the worklog cursor should land once a newly
+// requested week's worklogs have loaded (used when up/down crosses a week).
+type pendingSelect int
+
+const (
+	selectNone pendingSelect = iota
+	selectFirst
+	selectLast
+)
+
 // formRequest records a pending request to open the worklog form once account
 // links for the issue's project are available.
 type formRequest struct {
@@ -64,10 +74,11 @@ type Model struct {
 	searching   bool
 
 	// Week panel.
-	weekStart     time.Time
-	selectedDay   int
-	days          []domain.Day
-	worklogCursor int
+	weekStart      time.Time
+	selectedDay    int
+	days           []domain.Day
+	worklogCursor  int
+	pendingWorklog pendingSelect // where to put the cursor after a cross-week load
 
 	// Overlays.
 	form             *worklogForm
@@ -190,6 +201,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastSync = time.Now()
 		if msg.from.Equal(m.weekStart) {
 			m.rebuildDays(msg.worklogs)
+			m.applyPendingWorklog()
 		}
 		// Resolve any logged issues not already in the list (e.g. when viewing a
 		// week outside the initial 30-day seed window).
@@ -380,25 +392,32 @@ func (m Model) handleIssuesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleWeekKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Down):
-		// Move down within the day; at the last worklog, continue into the first
-		// worklog of the next day that has any.
+		// Move down within the day; at the last worklog continue into the next
+		// day's first, and past the end of the week into the next week's first.
 		if n := len(m.currentDayWorklogs()); n > 0 && m.worklogCursor < n-1 {
 			m.worklogCursor++
-		} else if nd := m.nextDayWithWorklogs(m.selectedDay); nd >= 0 {
+			return m, nil
+		}
+		if nd := m.nextDayWithWorklogs(m.selectedDay); nd >= 0 {
 			m.selectedDay = nd
 			m.worklogCursor = 0
+			return m, nil
 		}
-		return m, nil
+		return m.crossWeek(1, selectFirst)
 	case key.Matches(msg, m.keys.Up):
-		// Move up within the day; at the first worklog, continue into the last
-		// worklog of the previous day that has any.
+		// Move up within the day; at the first worklog continue into the previous
+		// day's last, and before the start of the week into the previous week's
+		// last.
 		if m.worklogCursor > 0 {
 			m.worklogCursor--
-		} else if pd := m.prevDayWithWorklogs(m.selectedDay); pd >= 0 {
+			return m, nil
+		}
+		if pd := m.prevDayWithWorklogs(m.selectedDay); pd >= 0 {
 			m.selectedDay = pd
 			m.worklogCursor = len(m.days[pd].Worklogs) - 1
+			return m, nil
 		}
-		return m, nil
+		return m.crossWeek(-1, selectLast)
 	case key.Matches(msg, m.keys.NextDay):
 		if m.selectedDay < 6 {
 			m.selectedDay++
@@ -656,6 +675,36 @@ func (m Model) issueByID(id string) *domain.Issue {
 		}
 	}
 	return nil
+}
+
+// applyPendingWorklog places the cursor on the first/last worklog of the just
+// loaded week when a cross-week move requested it. If the week has no worklogs
+// the selection stays at the start.
+func (m *Model) applyPendingWorklog() {
+	switch m.pendingWorklog {
+	case selectFirst:
+		if d := m.nextDayWithWorklogs(-1); d >= 0 {
+			m.selectedDay = d
+			m.worklogCursor = 0
+		}
+	case selectLast:
+		if d := m.prevDayWithWorklogs(len(m.days)); d >= 0 {
+			m.selectedDay = d
+			m.worklogCursor = len(m.days[d].Worklogs) - 1
+		}
+	}
+	m.pendingWorklog = selectNone
+}
+
+// crossWeek moves to the adjacent week (dir -1/+1), loads its worklogs, and
+// records where the cursor should land once they arrive (first/last worklog).
+func (m Model) crossWeek(dir int, where pendingSelect) (tea.Model, tea.Cmd) {
+	m.weekStart = m.weekStart.AddDate(0, 0, 7*dir)
+	m.selectedDay = 0
+	m.worklogCursor = 0
+	m.pendingWorklog = where
+	m.rebuildDays(nil)
+	return m, m.startLoad(m.svc.LoadWorklogs(m.weekStart))
 }
 
 // nextDayWithWorklogs returns the first day index after `from` that has any
