@@ -1,5 +1,6 @@
 # Binaries
 /lazytempo
+/bin/
 /dist/
 *.exe
 *.test

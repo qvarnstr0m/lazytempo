@@ -16,11 +16,17 @@ import (
 	"lazytempo/internal/ui"
 )
 
+// version is set at build time via -ldflags "-X main.version=...".
+var version = "dev"
+
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "--help", "-h":
 			printUsage()
+			return
+		case "--version", "-v":
+			fmt.Printf("lazytempo %s\n", version)
 			return
 		case "--example-config":
 			fmt.Print(config.ExampleTOML())
@@ -78,6 +84,7 @@ Usage:
   lazytempo                 Start the TUI
   lazytempo --example-config  Print an example config.toml
   lazytempo --config-path     Print the config file path
+  lazytempo --version         Print the version
   lazytempo --help            Show this help
 
 Configuration is read from ~/.config/lazytempo/config.toml with LAZYTEMPO_*

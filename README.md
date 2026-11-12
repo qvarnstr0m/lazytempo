@@ -38,9 +38,14 @@ runtime dependencies.
 ## Install
 
 ```sh
-go install lazytempo/cmd/lazytempo@latest   # from this module
-# or build locally:
+make build     # build to ./bin/lazytempo
+make install   # install into $GOBIN (or $GOPATH/bin)
+make run       # build and run the TUI
+make help      # list all targets
+
+# or with the go toolchain directly:
 go build -o lazytempo ./cmd/lazytempo
+go install ./cmd/lazytempo
 ```
 
 ## Configuration
