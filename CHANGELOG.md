@@ -10,9 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The worklog form now records start and end time via 5-minute dropdowns in
   24-hour European format (e.g. 16:05) instead of a free-text duration; the time
-  spent is derived from the range (end must be after start). The dropdowns are
-  filterable by typing, and the week view shows each worklog as a start–end
-  range.
+  spent is derived from the range (end must be after start). For a new worklog
+  the start defaults to the current time rounded to the nearest 5 minutes and
+  the end to one hour later. The dropdowns are filterable by typing, and the
+  week view shows each worklog as a start–end range.
 - The default issue list now includes issues you are involved with — assigned,
   reported, recently viewed (`issueHistory()`) or watching (`watchedIssues()`) —
   updated within the last 30 days, instead of only issues assigned to you.

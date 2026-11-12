@@ -35,15 +35,25 @@ type worklogForm struct {
 
 // newWorklogForm builds a form for the given issue. selectable is the list of
 // accounts valid for the issue's project; preselect is the preselected account
-// key (may be empty). existing is non-nil when editing.
-func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect string, existing *domain.Worklog, defaultDate time.Time) *worklogForm {
+// key (may be empty). existing is non-nil when editing. defaultStart is the
+// preselected start time ("HH:MM") for a new worklog; the end defaults to one
+// hour later (clamped to the end of the day).
+func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect string, existing *domain.Worklog, defaultDate time.Time, defaultStart string) *worklogForm {
+	// Default to the given start and one hour later, both snapped to the
+	// dropdown grid (a Select cannot display a value absent from its options).
+	start := snapToStep(defaultStart)
+	end := snapToStep(domain.AddClock(start, 60))
+	if _, err := domain.SecondsBetween(start, end); err != nil {
+		// Too close to midnight for a later end on the grid; use the last slot.
+		start, end = "23:50", "23:55"
+	}
 	f := &worklogForm{
 		issue:      issue,
 		accounts:   selectable,
 		accountKey: preselect,
 		dateStr:    defaultDate.Format(dateLayout),
-		startStr:   "09:00",
-		endStr:     "10:00",
+		startStr:   start,
+		endStr:     end,
 	}
 
 	if existing != nil {

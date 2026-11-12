@@ -507,7 +507,9 @@ func (m *Model) openPendingForm() tea.Cmd {
 	preselect := domain.PreselectAccount(selectable, lastUsed, defaultKey)
 
 	defaultDate := m.weekStart.AddDate(0, 0, m.selectedDay)
-	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, defaultDate)
+	now := time.Now()
+	defaultStart := domain.RoundClock(now.Hour()*60+now.Minute(), clockStepMinutes)
+	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, defaultDate, defaultStart)
 	return m.form.form.Init()
 }
 

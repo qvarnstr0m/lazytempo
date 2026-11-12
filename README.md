@@ -117,9 +117,11 @@ Tokens are never logged or printed.
 
 The worklog form records a **start** and **end** time via dropdowns in
 5-minute steps, 24-hour European format (e.g. `16:05`); the duration is derived
-from the range (end must be after start). Type in a dropdown to filter it
-(e.g. `16:0` jumps to `16:00`, `16:05`…). The date defaults to the day selected
-in the week view, and the week view shows each worklog as its `start–end` range.
+from the range (end must be after start). A new worklog defaults the start to
+the current time rounded to the nearest 5 minutes and the end to one hour later.
+Type in a dropdown to filter it (e.g. `16:0` jumps to `16:00`, `16:05`…). The
+date defaults to the day selected in the week view, and the week view shows each
+worklog as its `start–end` range.
 
 ## Account rules
 

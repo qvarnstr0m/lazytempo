@@ -41,6 +41,21 @@ func TestSecondsBetween(t *testing.T) {
 	}
 }
 
+func TestRoundClock(t *testing.T) {
+	cases := map[int]string{
+		16*60 + 3:  "16:05", // 16:03 -> nearest is 16:05
+		16*60 + 2:  "16:00", // 16:02 -> nearest is 16:00
+		16 * 60:    "16:00", // exact
+		23*60 + 58: "23:55", // would round up to 24:00; clamped to last slot
+		0:          "00:00",
+	}
+	for in, want := range cases {
+		if got := RoundClock(in, 5); got != want {
+			t.Errorf("RoundClock(%d) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestAddClock(t *testing.T) {
 	if got := AddClock("16:05", 90); got != "17:35" {
 		t.Errorf("AddClock = %q, want 17:35", got)

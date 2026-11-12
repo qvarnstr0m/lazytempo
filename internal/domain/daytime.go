@@ -65,6 +65,23 @@ func SecondsBetween(start, end string) (int, error) {
 	return (e - s) * 60, nil
 }
 
+// RoundClock rounds a minute-of-day value to the nearest step and returns the
+// matching "HH:MM" clock label, clamped to the last slot of the day so it
+// always corresponds to a valid dropdown option.
+func RoundClock(minutesOfDay, step int) string {
+	if step <= 0 {
+		step = 5
+	}
+	rounded := ((minutesOfDay + step/2) / step) * step
+	if last := (24*60/step - 1) * step; rounded > last {
+		rounded = last
+	}
+	if rounded < 0 {
+		rounded = 0
+	}
+	return formatClock(rounded)
+}
+
 // AddClock returns the clock time minutesToAdd after the given clock time,
 // clamped to 23:59 so it never wraps past midnight.
 func AddClock(start string, minutesToAdd int) string {
