@@ -31,7 +31,9 @@ type Config struct {
 	TargetHoursPerDay float64 `toml:"target_hours_per_day"`
 }
 
-const defaultJQL = "assignee = currentUser() AND updated >= -14d ORDER BY updated DESC"
+// defaultJQL lists issues you are involved with: assigned to you, logged time
+// on, reported, recently viewed, or watched — updated within the last 30 days.
+const defaultJQL = "(assignee = currentUser() OR worklogAuthor = currentUser() OR reporter = currentUser() OR issuekey IN issueHistory() OR issuekey IN watchedIssues()) AND updated >= -30d ORDER BY updated DESC"
 
 // Default returns a Config pre-populated with sensible defaults.
 func Default() Config {
@@ -163,6 +165,10 @@ jira_api_token = "your-jira-api-token"
 tempo_api_token = "your-tempo-api-token"
 
 # Optional:
+# my_issues_jql lists the issues shown in the left panel. The default includes
+# issues you are assigned, have logged time on, reported, recently viewed or
+# watch, updated within the last 30 days. Override it to taste, e.g. only your
+# own assigned issues:
 # my_issues_jql = "assignee = currentUser() AND updated >= -14d ORDER BY updated DESC"
 # target_hours_per_day = 8
 `

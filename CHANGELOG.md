@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The default issue list now includes issues you are involved with — assigned,
+  logged time on (`worklogAuthor`), reported, recently viewed (`issueHistory()`)
+  or watching (`watchedIssues()`) — updated within the last 30 days, instead of
+  only issues assigned to you. Override via `my_issues_jql` /
+  `LAZYTEMPO_MY_ISSUES_JQL`.
+
 ### Added
 - Initial MVP:
   - TOML configuration with `LAZYTEMPO_*` environment overrides; secrets are
