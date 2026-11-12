@@ -304,7 +304,7 @@ func (s *Service) SaveWorklog(editID int, in tempo.WorklogInput) tea.Cmd {
 			StartDate:        in.StartDate,
 			AccountKey:       in.AccountKey,
 		}
-		if err := wl.Validate(); err != nil {
+		if err := wl.Validate(s.cfg.RequireAccount); err != nil {
 			return worklogSavedMsg{err: err}
 		}
 		c, cancel := ctx()

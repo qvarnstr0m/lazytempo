@@ -17,9 +17,10 @@ var ErrNoTimeSpent = errors.New("time spent must be greater than zero")
 var ErrNoDate = errors.New("a start date is required")
 
 // Validate enforces the invariants a worklog must satisfy before it is sent to
-// Tempo. The account rule is the central one.
-func (w Worklog) Validate() error {
-	if !w.HasAccount() {
+// Tempo. When requireAccount is true (the default policy), every worklog must
+// have a Tempo account; set it false only for instances that don't use accounts.
+func (w Worklog) Validate(requireAccount bool) error {
+	if requireAccount && !w.HasAccount() {
 		return ErrNoAccount
 	}
 	if w.TimeSpentSeconds <= 0 {

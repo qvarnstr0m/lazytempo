@@ -8,25 +8,29 @@ import (
 func TestWorklogValidate(t *testing.T) {
 	base := Worklog{TimeSpentSeconds: 3600, StartDate: "2026-11-12", AccountKey: "CORE"}
 
-	if err := base.Validate(); err != nil {
+	if err := base.Validate(true); err != nil {
 		t.Fatalf("valid worklog rejected: %v", err)
 	}
 
 	noAccount := base
 	noAccount.AccountKey = ""
-	if err := noAccount.Validate(); !errors.Is(err, ErrNoAccount) {
-		t.Errorf("worklog without account: got %v, want ErrNoAccount", err)
+	if err := noAccount.Validate(true); !errors.Is(err, ErrNoAccount) {
+		t.Errorf("worklog without account (required): got %v, want ErrNoAccount", err)
+	}
+	// With the rule relaxed, a missing account is allowed.
+	if err := noAccount.Validate(false); err != nil {
+		t.Errorf("worklog without account (not required): got %v, want nil", err)
 	}
 
 	noTime := base
 	noTime.TimeSpentSeconds = 0
-	if err := noTime.Validate(); !errors.Is(err, ErrNoTimeSpent) {
+	if err := noTime.Validate(true); !errors.Is(err, ErrNoTimeSpent) {
 		t.Errorf("worklog without time: got %v, want ErrNoTimeSpent", err)
 	}
 
 	noDate := base
 	noDate.StartDate = ""
-	if err := noDate.Validate(); !errors.Is(err, ErrNoDate) {
+	if err := noDate.Validate(true); !errors.Is(err, ErrNoDate) {
 		t.Errorf("worklog without date: got %v, want ErrNoDate", err)
 	}
 }

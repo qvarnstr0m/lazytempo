@@ -323,6 +323,13 @@ func (c *HTTPClient) buildPayload(in WorklogInput) (worklogPayload, error) {
 	if startTime == "" {
 		startTime = "09:00:00"
 	}
+	// The account attribute is sent only when a key is provided; an empty
+	// account is simply omitted, so logging without an account is possible when
+	// policy allows it (the require-account rule is enforced upstream).
+	attrs := []attributeKeyVal{}
+	if in.AccountKey != "" {
+		attrs = append(attrs, attributeKeyVal{Key: c.accountKey(), Value: in.AccountKey})
+	}
 	return worklogPayload{
 		IssueID:                  issueID,
 		AuthorAccountID:          in.AuthorAccountID,
@@ -331,17 +338,12 @@ func (c *HTTPClient) buildPayload(in WorklogInput) (worklogPayload, error) {
 		StartTime:                startTime,
 		Description:              in.Description,
 		RemainingEstimateSeconds: in.RemainingEstimateSeconds,
-		Attributes: []attributeKeyVal{
-			{Key: c.accountKey(), Value: in.AccountKey},
-		},
+		Attributes:               attrs,
 	}, nil
 }
 
-// CreateWorklog implements Client. The account is mandatory and always written.
+// CreateWorklog implements Client.
 func (c *HTTPClient) CreateWorklog(ctx context.Context, in WorklogInput) (domain.Worklog, error) {
-	if in.AccountKey == "" {
-		return domain.Worklog{}, domain.ErrNoAccount
-	}
 	payload, err := c.buildPayload(in)
 	if err != nil {
 		return domain.Worklog{}, err
@@ -359,9 +361,6 @@ func (c *HTTPClient) CreateWorklog(ctx context.Context, in WorklogInput) (domain
 
 // UpdateWorklog implements Client.
 func (c *HTTPClient) UpdateWorklog(ctx context.Context, id int, in WorklogInput) (domain.Worklog, error) {
-	if in.AccountKey == "" {
-		return domain.Worklog{}, domain.ErrNoAccount
-	}
 	payload, err := c.buildPayload(in)
 	if err != nil {
 		return domain.Worklog{}, err

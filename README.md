@@ -97,6 +97,7 @@ Environment overrides:
 | `LAZYTEMPO_JIRA_API_TOKEN` | `jira_api_token` |
 | `LAZYTEMPO_TEMPO_API_TOKEN` | `tempo_api_token` |
 | `LAZYTEMPO_MY_ISSUES_JQL` | `my_issues_jql` |
+| `LAZYTEMPO_REQUIRE_ACCOUNT` | `require_account` |
 
 ### Getting tokens
 
@@ -158,6 +159,14 @@ date defaults to the day selected in the week view, and the week view shows each
 worklog as its `start–end` range.
 
 ## Account rules
+
+By default every worklog must have a Tempo account (the rules below). Set
+`require_account = false` (or `LAZYTEMPO_REQUIRE_ACCOUNT=false`) for Tempo
+instances that don't use accounts, or to log before a relevant account exists —
+the account field becomes optional (with a `(no account)` choice), nothing is
+blocked, and account-less worklogs are shown neutrally instead of in red.
+
+With the default (`require_account = true`):
 
 1. The worklog form cannot be submitted without a selected account (enforced by
    Huh field validation **and** re-checked before any API call).

@@ -30,7 +30,8 @@ type worklogForm struct {
 	dateStr    string
 	desc       string
 
-	accounts []domain.Account
+	accounts       []domain.Account
+	requireAccount bool
 }
 
 // newWorklogForm builds a form for the given issue. selectable is the list of
@@ -38,7 +39,7 @@ type worklogForm struct {
 // key (may be empty). existing is non-nil when editing. defaultStart is the
 // preselected start time ("HH:MM") for a new worklog; the end defaults to one
 // hour later (clamped to the end of the day).
-func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect string, existing *domain.Worklog, defaultDate time.Time, defaultStart string) *worklogForm {
+func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect string, existing *domain.Worklog, defaultDate time.Time, defaultStart string, requireAccount bool) *worklogForm {
 	// Default to the given start and one hour later, both snapped to the
 	// dropdown grid (a Select cannot display a value absent from its options).
 	start := snapToStep(defaultStart)
@@ -76,7 +77,12 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		f.desc = existing.Description
 	}
 
-	accountOptions := make([]huh.Option[string], 0, len(selectable))
+	f.requireAccount = requireAccount
+	accountOptions := make([]huh.Option[string], 0, len(selectable)+1)
+	if !requireAccount {
+		// Allow choosing no account when the rule is relaxed.
+		accountOptions = append(accountOptions, huh.NewOption("(no account)", ""))
+	}
 	for _, a := range selectable {
 		label := a.Name
 		if label == "" {
@@ -87,14 +93,20 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 
 	clockOptions := clockSelectOptions()
 
+	accountTitle := "Account (required)"
+	accountDesc := "Every worklog must have a Tempo account."
+	if !requireAccount {
+		accountTitle = "Account (optional)"
+		accountDesc = "Choose an account, or (no account)."
+	}
 	accountField := huh.NewSelect[string]().
 		Key("account").
-		Title("Account (required)").
-		Description("Every worklog must have a Tempo account.").
+		Title(accountTitle).
+		Description(accountDesc).
 		Options(accountOptions...).
 		Value(&f.accountKey).
 		Validate(func(s string) error {
-			if s == "" {
+			if requireAccount && s == "" {
 				return domain.ErrNoAccount
 			}
 			return nil
@@ -180,7 +192,7 @@ func snapToStep(clock string) string {
 // input converts the completed form into a tempo.WorklogInput. The duration is
 // computed from the start and end clock times.
 func (f *worklogForm) input() (tempo.WorklogInput, error) {
-	if f.accountKey == "" {
+	if f.requireAccount && f.accountKey == "" {
 		return tempo.WorklogInput{}, domain.ErrNoAccount
 	}
 	seconds, err := domain.SecondsBetween(f.startStr, f.endStr)

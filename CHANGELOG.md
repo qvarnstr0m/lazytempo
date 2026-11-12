@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The form also resizes with the terminal window.
 
 ### Added
+- `require_account` config (default `true`; env `LAZYTEMPO_REQUIRE_ACCOUNT`).
+  When false, the worklog account becomes optional (a `(no account)` choice),
+  logging is never blocked for lacking an account, and account-less worklogs are
+  shown neutrally instead of in red — for Tempo instances without accounts or to
+  log before a relevant account exists. The default keeps the account mandatory.
 - Press `s` to cycle the issue list sort: default (recently updated), recently
   logged, or most logged — using per-issue totals and last-logged dates
   aggregated from the recent (30-day) worklog window. Pinned issues stay first

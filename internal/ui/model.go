@@ -689,7 +689,8 @@ func (m *Model) openPendingForm() tea.Cmd {
 	projectID := req.issue.ProjectID
 	links := m.cache.AccountLinks(projectID)
 	selectable := domain.SelectableAccounts(projectID, m.cache.Accounts(), links)
-	if len(selectable) == 0 {
+	// Block only when accounts are required; otherwise allow logging with none.
+	if len(selectable) == 0 && m.cfg.RequireAccount {
 		m.setError(fmt.Sprintf("no valid Tempo accounts for project %s — logging blocked", req.issue.ProjectKey))
 		return nil
 	}
@@ -701,7 +702,7 @@ func (m *Model) openPendingForm() tea.Cmd {
 	defaultDate := m.weekStart.AddDate(0, 0, m.selectedDay)
 	now := time.Now()
 	defaultStart := domain.RoundClock(now.Hour()*60+now.Minute(), clockStepMinutes)
-	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, defaultDate, defaultStart)
+	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, defaultDate, defaultStart, m.cfg.RequireAccount)
 	m.form.form = m.form.form.WithWidth(formContentWidth(m.width))
 	return m.form.form.Init()
 }

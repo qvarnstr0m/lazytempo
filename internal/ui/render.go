@@ -320,9 +320,14 @@ func (m Model) renderWeek(width, height int) string {
 				timeStyle, bodyStyle = sel, sel
 				selLine = len(wlLines)
 			}
-			acct := m.theme.Muted.Render("[" + w.AccountKey + "]")
-			if !w.HasAccount() {
+			var acct string
+			switch {
+			case w.HasAccount():
+				acct = m.theme.Muted.Render("[" + w.AccountKey + "]")
+			case m.cfg.RequireAccount:
 				acct = m.theme.Error.Render("[NO ACCOUNT]")
+			default:
+				acct = m.theme.Muted.Render("[—]")
 			}
 			body := truncate(domain.FormatDuration(w.TimeSpentSeconds)+" "+key, width-18)
 			wlLines = append(wlLines,
@@ -393,10 +398,13 @@ func (m Model) writeWorklogDetails(b *strings.Builder, w domain.Worklog, width i
 	b.WriteString(m.theme.Muted.Render("When:    ") + m.theme.Accent.Render(worklogClockRange(w)) + "\n")
 	b.WriteString(m.theme.Muted.Render("Time:    ") + m.theme.Text.Render(domain.FormatDuration(w.TimeSpentSeconds)) + "\n")
 	b.WriteString(m.theme.Muted.Render("Date:    ") + m.theme.Text.Render(w.StartDate) + "\n")
-	if w.HasAccount() {
+	switch {
+	case w.HasAccount():
 		b.WriteString(m.theme.Muted.Render("Account: ") + m.theme.Text.Render(w.AccountKey) + "\n")
-	} else {
+	case m.cfg.RequireAccount:
 		b.WriteString(m.theme.Muted.Render("Account: ") + m.theme.Error.Render("missing!") + "\n")
+	default:
+		b.WriteString(m.theme.Muted.Render("Account: ") + m.theme.Muted.Render("—") + "\n")
 	}
 	if w.Description != "" {
 		b.WriteString("\n" + m.theme.Text.Render(wrap(w.Description, width-2)))

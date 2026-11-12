@@ -10,7 +10,7 @@ import (
 func TestWorklogFormInputFromStartEnd(t *testing.T) {
 	issue := domain.Issue{ID: "10119", Key: "CORE-5", ProjectID: "200"}
 	accounts := []domain.Account{{ID: 1, Key: "CORE", Name: "Acme", Status: "OPEN"}}
-	f := newWorklogForm(issue, accounts, "CORE", nil, time.Date(2026, 11, 12, 0, 0, 0, 0, time.Local), "09:00")
+	f := newWorklogForm(issue, accounts, "CORE", nil, time.Date(2026, 11, 12, 0, 0, 0, 0, time.Local), "09:00", true)
 
 	// Simulate the user picking 16:05–17:35 in the dropdowns.
 	f.startStr = "16:05"
@@ -33,7 +33,7 @@ func TestWorklogFormInputFromStartEnd(t *testing.T) {
 
 func TestWorklogFormDefaultsStartToNow(t *testing.T) {
 	// A new worklog defaults start to the given time and end to one hour later.
-	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "16:05")
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "16:05", true)
 	if f.startStr != "16:05" {
 		t.Errorf("start = %q, want 16:05", f.startStr)
 	}
@@ -41,14 +41,36 @@ func TestWorklogFormDefaultsStartToNow(t *testing.T) {
 		t.Errorf("end = %q, want 17:05", f.endStr)
 	}
 	// Late in the day, the end clamps to the last slot but stays after start.
-	f = newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "23:40")
+	f = newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "23:40", true)
 	if _, err := domain.SecondsBetween(f.startStr, f.endStr); err != nil {
 		t.Errorf("late-day default produced invalid range %s–%s: %v", f.startStr, f.endStr, err)
 	}
 }
 
+func TestWorklogFormOptionalAccount(t *testing.T) {
+	// With requireAccount=false, no accounts and an empty selection are allowed.
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "", nil, time.Now(), "09:00", false)
+	f.accountKey = "" // "(no account)"
+	in, err := f.input()
+	if err != nil {
+		t.Fatalf("optional account: input() returned error: %v", err)
+	}
+	if in.AccountKey != "" {
+		t.Errorf("expected empty account, got %q", in.AccountKey)
+	}
+}
+
+func TestWorklogFormRequiresAccountWhenSet(t *testing.T) {
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "", nil, time.Now(), "09:00", true)
+	f.accountKey = ""
+	f.startStr, f.endStr = "09:00", "10:00"
+	if _, err := f.input(); err == nil {
+		t.Error("expected error for missing account when required")
+	}
+}
+
 func TestWorklogFormRejectsBadRange(t *testing.T) {
-	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "09:00")
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "09:00", true)
 	f.startStr = "10:00"
 	f.endStr = "09:00" // end before start
 	if _, err := f.input(); err == nil {
@@ -64,7 +86,7 @@ func TestWorklogFormEditDerivesRange(t *testing.T) {
 		StartDate:        "2026-11-10",
 		AccountKey:       "CORE",
 	}
-	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", existing, time.Now(), "09:00")
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", existing, time.Now(), "09:00", true)
 	if f.editID != 42 {
 		t.Errorf("editID = %d, want 42", f.editID)
 	}

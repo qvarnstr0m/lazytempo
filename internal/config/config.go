@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -29,6 +30,10 @@ type Config struct {
 	MyIssuesJQL string `toml:"my_issues_jql"`
 	// TargetHoursPerDay is the daily target used to colour day totals.
 	TargetHoursPerDay float64 `toml:"target_hours_per_day"`
+	// RequireAccount enforces that every worklog has a Tempo account (default).
+	// Set false for Tempo instances that don't use accounts, or to allow logging
+	// before a relevant account exists.
+	RequireAccount bool `toml:"require_account"`
 }
 
 // defaultJQL lists issues you are involved with: assigned to you, logged time
@@ -40,6 +45,7 @@ func Default() Config {
 	return Config{
 		MyIssuesJQL:       defaultJQL,
 		TargetHoursPerDay: 8,
+		RequireAccount:    true,
 	}
 }
 
@@ -95,6 +101,11 @@ func (c *Config) applyEnv() {
 	}
 	if v := os.Getenv("LAZYTEMPO_MY_ISSUES_JQL"); v != "" {
 		c.MyIssuesJQL = v
+	}
+	if v := os.Getenv("LAZYTEMPO_REQUIRE_ACCOUNT"); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			c.RequireAccount = b
+		}
 	}
 }
 
@@ -171,5 +182,9 @@ tempo_api_token = "your-tempo-api-token"
 # own assigned issues:
 # my_issues_jql = "assignee = currentUser() AND updated >= -14d ORDER BY updated DESC"
 # target_hours_per_day = 8
+
+# Every worklog must have a Tempo account (default: true). Set false for Tempo
+# instances that don't use accounts, or to log before a relevant account exists.
+# require_account = true
 `
 }

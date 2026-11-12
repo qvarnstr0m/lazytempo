@@ -108,16 +108,28 @@ func TestCreateWorklogSendsAccount(t *testing.T) {
 	}
 }
 
-func TestCreateWorklogRejectsMissingAccount(t *testing.T) {
-	// No server call should be made; the client rejects before sending.
-	c := New("http://unused", "tok", httpx.NewDoer(nil))
+func TestCreateWorklogOmitsAccountWhenEmpty(t *testing.T) {
+	// The client is policy-neutral: with no account key it simply omits the
+	// account attribute (the require-account rule is enforced upstream).
+	var received worklogPayload
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(body, &received)
+		_, _ = w.Write([]byte(`{"tempoWorklogId":7,"issue":{"id":10991}}`))
+	}))
+	defer srv.Close()
+
+	c := New(srv.URL, "tok", testDoer(srv))
 	_, err := c.CreateWorklog(context.Background(), WorklogInput{
 		IssueID:          "10991",
 		TimeSpentSeconds: 3600,
 		StartDate:        "2026-11-12",
 	})
-	if err == nil {
-		t.Fatal("expected error for missing account, got nil")
+	if err != nil {
+		t.Fatalf("CreateWorklog without account: %v", err)
+	}
+	if len(received.Attributes) != 0 {
+		t.Errorf("expected no attributes when account is empty, got %+v", received.Attributes)
 	}
 }
 
