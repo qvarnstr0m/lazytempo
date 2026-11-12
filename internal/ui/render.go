@@ -310,7 +310,12 @@ func (m Model) renderWeek(width, height int) string {
 		}
 	}
 
-	b.WriteString(m.theme.Muted.Render("Worklogs — this week") + "\n")
+	_, wk := m.weekStart.ISOWeek()
+	wlTitle := fmt.Sprintf("Worklogs — Week %d", wk)
+	if m.weekStart.Equal(weekStart(time.Now())) {
+		wlTitle = fmt.Sprintf("Worklogs — This week (%d)", wk)
+	}
+	b.WriteString(m.theme.Muted.Render(wlTitle) + "\n")
 
 	avail := height - headerLines - 1 // rows left for the worklog list
 	if avail < 1 {
