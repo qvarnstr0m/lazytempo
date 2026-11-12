@@ -190,7 +190,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Keep an open form sized to the box so fields (notably the description)
 		// wrap at the right width.
 		if m.form != nil {
-			m.form.form = m.form.form.WithWidth(formContentWidth(msg.Width))
+			m.form.form = m.form.form.WithWidth(formContentWidth(msg.Width)).WithHeight(formContentHeight(msg.Height))
 		}
 		return m, nil
 
@@ -703,7 +703,7 @@ func (m *Model) openPendingForm() tea.Cmd {
 	now := time.Now()
 	defaultStart := domain.RoundClock(now.Hour()*60+now.Minute(), clockStepMinutes)
 	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, defaultDate, defaultStart, m.cfg.RequireAccount)
-	m.form.form = m.form.form.WithWidth(formContentWidth(m.width))
+	m.form.form = m.form.form.WithWidth(formContentWidth(m.width)).WithHeight(formContentHeight(m.height))
 	return m.form.form.Init()
 }
 

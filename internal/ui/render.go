@@ -443,6 +443,18 @@ func formContentWidth(total int) int {
 	return formBoxWidth(total) - 4
 }
 
+// formContentHeight is the height the form may occupy inside the box: the
+// terminal height minus the header strip, status bar, box border and title.
+// Constraining it makes Huh scroll the form so its top (and the account list)
+// stays reachable even with many accounts.
+func formContentHeight(total int) int {
+	h := total - 8
+	if h < 10 {
+		h = 10
+	}
+	return h
+}
+
 // renderFullHelp renders the full keybinding help.
 func (m Model) renderFullHelp(height int) string {
 	m.help.ShowAll = true

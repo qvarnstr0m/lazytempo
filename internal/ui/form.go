@@ -104,6 +104,8 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		Title(accountTitle).
 		Description(accountDesc).
 		Options(accountOptions...).
+		Filtering(true).
+		Height(8).
 		Value(&f.accountKey).
 		Validate(func(s string) error {
 			if requireAccount && s == "" {

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- The create/edit worklog form no longer overflows when a project has many
+  accounts: the account dropdown is capped at 8 visible rows (type to filter)
+  and the whole form is height-constrained so it scrolls, keeping the top of the
+  form reachable.
 - Creating or updating a worklog now sends `remainingEstimateSeconds` (the
   issue's current remaining estimate, fetched from Jira), fixing the Tempo 400
   "Remaining estimate must not be empty" on projects with estimate tracking.
