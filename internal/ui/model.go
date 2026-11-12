@@ -478,7 +478,7 @@ func (m *Model) openPendingForm() tea.Cmd {
 	}
 
 	lastUsed := m.cache.LastAccountForIssue(req.issue.ID)
-	defaultKey := domain.DefaultAccountKey(projectID, links)
+	defaultKey := domain.DefaultAccountKey(projectID, m.cache.Accounts(), links)
 	preselect := domain.PreselectAccount(selectable, lastUsed, defaultKey)
 
 	defaultDate := m.weekStart.AddDate(0, 0, m.selectedDay)

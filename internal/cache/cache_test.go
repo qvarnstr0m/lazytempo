@@ -1,10 +1,48 @@
 package cache
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"lazytempo/internal/domain"
 )
+
+func TestVersionMismatchDropsStaleData(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_CACHE_HOME", dir)
+
+	// Write a v1-style cache: stale account links plus user data to preserve.
+	stale := `{
+		"version": 1,
+		"account_links": {"13932": [{"ProjectID":"13932","Default":true}]},
+		"pinned": {"PROJ-1": true},
+		"last_account_by_issue": {"62487": "CORE"}
+	}`
+	path := filepath.Join(dir, "lazytempo", "cache.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(stale), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	c, err := Open()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Stale, wrong-shape account links must be dropped so they get re-fetched.
+	if got := c.AccountLinks("13932"); len(got) != 0 {
+		t.Errorf("expected stale account links dropped, got %+v", got)
+	}
+	// User data survives the format change.
+	if c.LastAccountForIssue("62487") != "CORE" {
+		t.Error("last-used account should survive a version bump")
+	}
+	if c.Issues(); len(c.Issues()) != 0 {
+		t.Error("expected no cached issues after version bump")
+	}
+}
 
 func TestLastAccountRoundTrip(t *testing.T) {
 	c := &Cache{data: Data{LastAccountByIssue: map[string]string{}, Pinned: map[string]bool{}, AccountLinks: map[string][]domain.AccountLink{}}}

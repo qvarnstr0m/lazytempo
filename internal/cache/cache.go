@@ -16,8 +16,14 @@ import (
 	"lazytempo/internal/domain"
 )
 
+// cacheVersion is bumped whenever the on-disk format changes in a way that
+// makes older data invalid. A mismatch causes the cache to be discarded and
+// rebuilt from the API, so format changes heal automatically.
+const cacheVersion = 2
+
 // Data is the serialisable cache payload.
 type Data struct {
+	Version        int                    `json:"version"`
 	UpdatedAt      time.Time              `json:"updated_at"`
 	AccountID      string                 `json:"account_id"`
 	AccountAttrKey string                 `json:"account_attr_key"`
@@ -70,10 +76,31 @@ func Open() (*Cache, error) {
 	if raw, err := os.ReadFile(path); err == nil {
 		var d Data
 		if json.Unmarshal(raw, &d) == nil {
-			c.data = normalize(d)
+			if d.Version == cacheVersion {
+				c.data = normalize(d)
+			} else {
+				// Format changed: drop API-derived data (which may be in an old
+				// shape) but keep user data that is still valid.
+				c.data.Pinned = nonNilBool(d.Pinned)
+				c.data.LastAccountByIssue = nonNilStr(d.LastAccountByIssue)
+			}
 		}
 	}
 	return c, nil
+}
+
+func nonNilBool(m map[string]bool) map[string]bool {
+	if m == nil {
+		return map[string]bool{}
+	}
+	return m
+}
+
+func nonNilStr(m map[string]string) map[string]string {
+	if m == nil {
+		return map[string]string{}
+	}
+	return m
 }
 
 func normalize(d Data) Data {
@@ -184,6 +211,7 @@ func (c *Cache) TogglePin(issueKey string) bool {
 func (c *Cache) Save() error {
 	c.mu.RLock()
 	data := c.data
+	data.Version = cacheVersion
 	path := c.path
 	c.mu.RUnlock()
 

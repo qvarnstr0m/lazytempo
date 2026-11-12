@@ -37,10 +37,14 @@ func (a Account) IsSelectable() bool {
 
 // AccountLink ties an account to a project and records whether it is the
 // project's default account.
+//
+// Tempo's account-links endpoint identifies the account by its numeric id
+// (not its key), so the link carries AccountID and the key is resolved against
+// the account list when needed.
 type AccountLink struct {
-	AccountKey string
-	ProjectID  string
-	Default    bool
+	AccountID int
+	ProjectID string
+	Default   bool
 }
 
 // WorkAttribute describes a Tempo work attribute. The account attribute has

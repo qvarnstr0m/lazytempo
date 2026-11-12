@@ -33,19 +33,19 @@ func TestWorklogValidate(t *testing.T) {
 
 func sampleAccounts() []Account {
 	return []Account{
-		{Key: "CORE", Name: "Core", Status: "OPEN"},
-		{Key: "RND", Name: "R&D", Status: "OPEN"},
-		{Key: "OLD", Name: "Legacy", Status: "CLOSED"},
-		{Key: "OTHER", Name: "Other project", Status: "OPEN"},
+		{ID: 1, Key: "CORE", Name: "Core", Status: "OPEN"},
+		{ID: 2, Key: "RND", Name: "R&D", Status: "OPEN"},
+		{ID: 3, Key: "OLD", Name: "Legacy", Status: "CLOSED"},
+		{ID: 4, Key: "OTHER", Name: "Other project", Status: "OPEN"},
 	}
 }
 
 func sampleLinks() []AccountLink {
 	return []AccountLink{
-		{AccountKey: "CORE", ProjectID: "100", Default: true},
-		{AccountKey: "RND", ProjectID: "100"},
-		{AccountKey: "OLD", ProjectID: "100"},
-		{AccountKey: "OTHER", ProjectID: "200"},
+		{AccountID: 1, ProjectID: "100", Default: true},
+		{AccountID: 2, ProjectID: "100"},
+		{AccountID: 3, ProjectID: "100"},
+		{AccountID: 4, ProjectID: "200"},
 	}
 }
 
@@ -71,17 +71,17 @@ func TestSelectableAccountsNone(t *testing.T) {
 }
 
 func TestDefaultAccountKey(t *testing.T) {
-	if got := DefaultAccountKey("100", sampleLinks()); got != "CORE" {
+	if got := DefaultAccountKey("100", sampleAccounts(), sampleLinks()); got != "CORE" {
 		t.Errorf("DefaultAccountKey = %q, want CORE", got)
 	}
-	if got := DefaultAccountKey("200", sampleLinks()); got != "" {
+	if got := DefaultAccountKey("200", sampleAccounts(), sampleLinks()); got != "" {
 		t.Errorf("DefaultAccountKey for project without default = %q, want empty", got)
 	}
 }
 
 func TestPreselectAccount(t *testing.T) {
 	selectable := SelectableAccounts("100", sampleAccounts(), sampleLinks())
-	defaultKey := DefaultAccountKey("100", sampleLinks())
+	defaultKey := DefaultAccountKey("100", sampleAccounts(), sampleLinks())
 
 	// 1. Last used wins when it is still selectable.
 	if got := PreselectAccount(selectable, "RND", defaultKey); got != "RND" {

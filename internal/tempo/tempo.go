@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	"lazytempo/internal/domain"
@@ -166,7 +167,8 @@ func (c *HTTPClient) Accounts(ctx context.Context) ([]domain.Account, error) {
 type accountLinkResponse struct {
 	Results []struct {
 		Account struct {
-			Key string `json:"key"`
+			ID   int    `json:"id"`
+			Self string `json:"self"`
 		} `json:"account"`
 		Scope struct {
 			ID int `json:"id"`
@@ -176,6 +178,9 @@ type accountLinkResponse struct {
 }
 
 // AccountLinks implements Client, returning the account links for a project.
+//
+// Tempo identifies the linked account by numeric id. When the id is not inlined
+// it is parsed from the account's `self` URL (e.g. .../accounts/164).
 func (c *HTTPClient) AccountLinks(ctx context.Context, projectID string) ([]domain.AccountLink, error) {
 	req, err := c.newRequest(ctx, http.MethodGet, "/account-links/project/"+projectID, nil)
 	if err != nil {
@@ -187,13 +192,34 @@ func (c *HTTPClient) AccountLinks(ctx context.Context, projectID string) ([]doma
 	}
 	links := make([]domain.AccountLink, 0, len(out.Results))
 	for _, l := range out.Results {
+		id := l.Account.ID
+		if id == 0 {
+			id = idFromSelf(l.Account.Self)
+		}
+		if id == 0 {
+			continue
+		}
 		links = append(links, domain.AccountLink{
-			AccountKey: l.Account.Key,
-			ProjectID:  projectID,
-			Default:    l.Default,
+			AccountID: id,
+			ProjectID: projectID,
+			Default:   l.Default,
 		})
 	}
 	return links, nil
+}
+
+// idFromSelf extracts the trailing numeric id from a Tempo `self` URL such as
+// "https://api.tempo.io/4/accounts/164".
+func idFromSelf(self string) int {
+	if self == "" {
+		return 0
+	}
+	last := self[strings.LastIndex(self, "/")+1:]
+	n, err := strconv.Atoi(last)
+	if err != nil {
+		return 0
+	}
+	return n
 }
 
 // --- Worklogs ---

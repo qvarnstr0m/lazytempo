@@ -121,9 +121,11 @@ func TestAccountLinks(t *testing.T) {
 		if r.URL.Path != "/account-links/project/100" {
 			t.Errorf("unexpected path %s", r.URL.Path)
 		}
+		// Real Tempo shape: the account is referenced by id (inline and/or via a
+		// `self` URL), never by key.
 		_, _ = w.Write([]byte(`{"results":[
-			{"account":{"key":"CORE"},"scope":{"id":100},"default":true},
-			{"account":{"key":"RND"},"scope":{"id":100},"default":false}
+			{"account":{"self":"https://api.tempo.io/4/accounts/164"},"scope":{"id":100},"default":true},
+			{"account":{"id":48,"self":"https://api.tempo.io/4/accounts/48"},"scope":{"id":100},"default":false}
 		]}`))
 	}))
 	defer srv.Close()
@@ -133,8 +135,15 @@ func TestAccountLinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AccountLinks: %v", err)
 	}
-	if len(links) != 2 || links[0].AccountKey != "CORE" || !links[0].Default {
-		t.Errorf("unexpected links: %+v", links)
+	if len(links) != 2 {
+		t.Fatalf("got %d links, want 2", len(links))
+	}
+	// First link's id comes from the self URL; second from the inline id.
+	if links[0].AccountID != 164 || !links[0].Default {
+		t.Errorf("unexpected first link: %+v", links[0])
+	}
+	if links[1].AccountID != 48 {
+		t.Errorf("unexpected second link: %+v", links[1])
 	}
 }
 

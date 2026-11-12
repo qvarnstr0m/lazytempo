@@ -32,19 +32,20 @@ func (w Worklog) Validate() error {
 }
 
 // SelectableAccounts returns the accounts that may be chosen for an issue in the
-// given project: those linked to the project, keeping only open accounts.
+// given project: those linked to the project (by account id), keeping only open
+// accounts.
 //
 // The returned slice is sorted by account name for a stable UI ordering.
 func SelectableAccounts(projectID string, accounts []Account, links []AccountLink) []Account {
-	linked := map[string]bool{}
+	linked := map[int]bool{}
 	for _, l := range links {
 		if l.ProjectID == projectID {
-			linked[l.AccountKey] = true
+			linked[l.AccountID] = true
 		}
 	}
 	var out []Account
 	for _, a := range accounts {
-		if linked[a.Key] && a.IsSelectable() {
+		if linked[a.ID] && a.IsSelectable() {
 			out = append(out, a)
 		}
 	}
@@ -52,12 +53,23 @@ func SelectableAccounts(projectID string, accounts []Account, links []AccountLin
 	return out
 }
 
-// DefaultAccountKey returns the key of the project's default account link, or an
-// empty string when the project has no default.
-func DefaultAccountKey(projectID string, links []AccountLink) string {
+// DefaultAccountKey returns the key of the project's default account link,
+// resolving the linked account id against accounts. It returns an empty string
+// when the project has no default or the account is unknown.
+func DefaultAccountKey(projectID string, accounts []Account, links []AccountLink) string {
+	defaultID := -1
 	for _, l := range links {
 		if l.ProjectID == projectID && l.Default {
-			return l.AccountKey
+			defaultID = l.AccountID
+			break
+		}
+	}
+	if defaultID < 0 {
+		return ""
+	}
+	for _, a := range accounts {
+		if a.ID == defaultID {
+			return a.Key
 		}
 	}
 	return ""
