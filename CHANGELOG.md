@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The form also resizes with the terminal window.
 
 ### Added
+- Per-day gauges in the Week panel: each weekday shows a progress bar against
+  the daily target with its over/under (`+15m`, `-1h`, `✓`), weekends show a
+  neutral row, and the week total has a matching gauge.
 - A header strip across the top of the UI: app name, your Jira display name, the
   current ISO week and Mon–Sun date range, the week total against target with a
   small gauge, and a last-synced indicator (`synced 2m ago` / `syncing…`). The

@@ -201,16 +201,37 @@ func (m Model) renderWeek(width, height int) string {
 	b.WriteString("\n")
 
 	target := m.cfg.TargetSecondsPerDay()
+	const gaugeCells = 12
 	for i, d := range m.days {
 		total := d.TotalSeconds()
 		dayLabel := d.Date.Format("Mon 02")
-		totalStr := domain.FormatDuration(total)
+		weekend := d.Date.Weekday() == time.Saturday || d.Date.Weekday() == time.Sunday
 
-		totalStyle := m.theme.Warning
-		if total >= target {
-			totalStyle = m.theme.Success
-		} else if total == 0 {
-			totalStyle = m.theme.Muted
+		// Gauge and over/under against the daily target (weekends have no target).
+		var gauge, delta string
+		totalStyle := m.theme.Muted
+		if weekend {
+			gauge = m.theme.Muted.Render(strings.Repeat("·", gaugeCells))
+			if total > 0 {
+				totalStyle = m.theme.Text
+			}
+		} else {
+			gauge = m.renderGauge(total, target, gaugeCells)
+			switch diff := total - target; {
+			case total == 0:
+				totalStyle = m.theme.Muted
+				delta = m.theme.Muted.Render("-" + domain.FormatDuration(target))
+			case diff >= 0:
+				totalStyle = m.theme.Success
+				if diff == 0 {
+					delta = m.theme.Success.Render("✓")
+				} else {
+					delta = m.theme.Success.Render("+" + domain.FormatDuration(diff))
+				}
+			default:
+				totalStyle = m.theme.Warning
+				delta = m.theme.Muted.Render("-" + domain.FormatDuration(-diff))
+			}
 		}
 
 		labelStyle := m.theme.Text
@@ -219,8 +240,12 @@ func (m Model) renderWeek(width, height int) string {
 			prefix = m.theme.Selected.Render("› ")
 			labelStyle = m.theme.Selected
 		}
-		row := prefix + labelStyle.Render(fmt.Sprintf("%-8s", dayLabel)) + " " + totalStyle.Render(totalStr)
-		b.WriteString(row + "\n")
+		row := prefix +
+			labelStyle.Render(fmt.Sprintf("%-7s", dayLabel)) + " " +
+			gauge + " " +
+			totalStyle.Render(fmt.Sprintf("%5s", domain.FormatDuration(total))) + " " +
+			delta
+		b.WriteString(strings.TrimRight(row, " ") + "\n")
 	}
 
 	weekTotal := weekTotalSeconds(m.days)
@@ -229,8 +254,11 @@ func (m Model) renderWeek(width, height int) string {
 	if weekTotal >= weekTarget {
 		wtStyle = m.theme.Success
 	}
-	b.WriteString(m.theme.Muted.Render("────────────") + "\n")
-	b.WriteString(m.theme.Muted.Render("Week total: ") + wtStyle.Render(domain.FormatDuration(weekTotal)) + "\n\n")
+	b.WriteString("\n")
+	b.WriteString("  " + m.theme.Muted.Render(fmt.Sprintf("%-7s", "Week")) + " " +
+		m.renderGauge(weekTotal, weekTarget, gaugeCells) + " " +
+		wtStyle.Render(fmt.Sprintf("%5s", domain.FormatDuration(weekTotal))) +
+		m.theme.Muted.Render(" / "+domain.FormatDuration(weekTarget)) + "\n\n")
 
 	// Worklogs for the selected day.
 	wls := m.currentDayWorklogs()
