@@ -115,9 +115,11 @@ Tokens are never logged or printed.
 
 ## Time input
 
-The worklog form accepts: `1h30m`, `1.5h`, `90m`, `45m`, `1:30`, `45s`, or a
-bare number read as hours (`2` = 2h). The date defaults to the day selected in
-the week view.
+The worklog form records a **start** and **end** time via dropdowns in
+5-minute steps, 24-hour European format (e.g. `16:05`); the duration is derived
+from the range (end must be after start). Type in a dropdown to filter it
+(e.g. `16:0` jumps to `16:00`, `16:05`…). The date defaults to the day selected
+in the week view, and the week view shows each worklog as its `start–end` range.
 
 ## Account rules
 

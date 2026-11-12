@@ -10,8 +10,14 @@ import (
 	"lazytempo/internal/tempo"
 )
 
+// clockStepMinutes is the granularity of the start/end time dropdowns.
+const clockStepMinutes = 5
+
 // worklogForm wraps a Huh form for creating or editing a worklog. The account
 // field is mandatory: the form cannot be submitted without a selected account.
+//
+// Time is entered as start and end clock times (5-minute steps, 24-hour
+// European format, e.g. 16:05); the duration is derived from them.
 type worklogForm struct {
 	form   *huh.Form
 	issue  domain.Issue
@@ -19,7 +25,8 @@ type worklogForm struct {
 
 	// Bound values.
 	accountKey string
-	timeStr    string
+	startStr   string
+	endStr     string
 	dateStr    string
 	desc       string
 
@@ -35,32 +42,46 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		accounts:   selectable,
 		accountKey: preselect,
 		dateStr:    defaultDate.Format(dateLayout),
+		startStr:   "09:00",
+		endStr:     "10:00",
 	}
 
 	if existing != nil {
 		f.editID = existing.ID
 		f.accountKey = existing.AccountKey
-		f.timeStr = domain.FormatDuration(existing.TimeSpentSeconds)
 		if existing.StartDate != "" {
 			f.dateStr = existing.StartDate
 		}
+		// Derive start/end from the existing worklog's start time + duration,
+		// snapping the start to the dropdown grid.
+		start := clockFromStartTime(existing.StartTime, "09:00")
+		f.startStr = snapToStep(start)
+		// Snap the end onto the dropdown grid too (a Select cannot show a value
+		// absent from its options); never let it collapse onto the start.
+		end := snapToStep(domain.AddClock(f.startStr, existing.TimeSpentSeconds/60))
+		if _, err := domain.SecondsBetween(f.startStr, end); err != nil {
+			end = domain.AddClock(f.startStr, clockStepMinutes)
+		}
+		f.endStr = end
 		f.desc = existing.Description
 	}
 
-	options := make([]huh.Option[string], 0, len(selectable))
+	accountOptions := make([]huh.Option[string], 0, len(selectable))
 	for _, a := range selectable {
 		label := a.Name
 		if label == "" {
 			label = a.Key
 		}
-		options = append(options, huh.NewOption(fmt.Sprintf("%s (%s)", label, a.Key), a.Key))
+		accountOptions = append(accountOptions, huh.NewOption(fmt.Sprintf("%s (%s)", label, a.Key), a.Key))
 	}
+
+	clockOptions := clockSelectOptions()
 
 	accountField := huh.NewSelect[string]().
 		Key("account").
 		Title("Account (required)").
 		Description("Every worklog must have a Tempo account.").
-		Options(options...).
+		Options(accountOptions...).
 		Value(&f.accountKey).
 		Validate(func(s string) error {
 			if s == "" {
@@ -69,13 +90,23 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 			return nil
 		})
 
-	timeField := huh.NewInput().
-		Key("time").
-		Title("Time spent").
-		Placeholder("1h30m, 1.5h, 90m, 1:30").
-		Value(&f.timeStr).
-		Validate(func(s string) error {
-			_, err := domain.ParseDuration(s)
+	startField := huh.NewSelect[string]().
+		Key("start").
+		Title("Start").
+		Options(clockOptions...).
+		Filtering(true).
+		Height(8).
+		Value(&f.startStr)
+
+	endField := huh.NewSelect[string]().
+		Key("end").
+		Title("End").
+		Options(clockOptions...).
+		Filtering(true).
+		Height(8).
+		Value(&f.endStr).
+		Validate(func(end string) error {
+			_, err := domain.SecondsBetween(f.startStr, end)
 			return err
 		})
 
@@ -98,25 +129,59 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		Lines(2)
 
 	f.form = huh.NewForm(
-		huh.NewGroup(accountField, timeField, dateField, descField),
+		huh.NewGroup(accountField, startField, endField, dateField, descField),
 	).WithTheme(huh.ThemeCharm()).WithShowHelp(true)
 
 	return f
 }
 
-// input converts the completed form into a tempo.WorklogInput.
-func (f *worklogForm) input() (tempo.WorklogInput, error) {
-	seconds, err := domain.ParseDuration(f.timeStr)
-	if err != nil {
-		return tempo.WorklogInput{}, err
+// clockSelectOptions builds the 5-minute dropdown options once.
+func clockSelectOptions() []huh.Option[string] {
+	labels := domain.TimeOptions(clockStepMinutes)
+	opts := make([]huh.Option[string], 0, len(labels))
+	for _, l := range labels {
+		opts = append(opts, huh.NewOption(l, l))
 	}
+	return opts
+}
+
+// clockFromStartTime takes a Tempo start time ("HH:MM:SS" or "HH:MM") and
+// returns an "HH:MM" clock, falling back to fallback on parse failure.
+func clockFromStartTime(startTime, fallback string) string {
+	if len(startTime) >= 5 {
+		if _, err := domain.ParseClock(startTime[:5]); err == nil {
+			return startTime[:5]
+		}
+	}
+	return fallback
+}
+
+// snapToStep rounds an "HH:MM" clock down to the dropdown grid so it matches an
+// existing option (a Select cannot show a value absent from its options).
+func snapToStep(clock string) string {
+	m, err := domain.ParseClock(clock)
+	if err != nil {
+		return "09:00"
+	}
+	m -= m % clockStepMinutes
+	return domain.AddClock("00:00", m)
+}
+
+// input converts the completed form into a tempo.WorklogInput. The duration is
+// computed from the start and end clock times.
+func (f *worklogForm) input() (tempo.WorklogInput, error) {
 	if f.accountKey == "" {
 		return tempo.WorklogInput{}, domain.ErrNoAccount
+	}
+	seconds, err := domain.SecondsBetween(f.startStr, f.endStr)
+	if err != nil {
+		return tempo.WorklogInput{}, err
 	}
 	return tempo.WorklogInput{
 		IssueID:          f.issue.ID,
 		TimeSpentSeconds: seconds,
 		StartDate:        f.dateStr,
+		StartTime:        f.startStr + ":00",
 		Description:      f.desc,
 		AccountKey:       f.accountKey,
 	}, nil

@@ -153,7 +153,7 @@ func (m Model) renderWeek(width, height int) string {
 	}
 	for i, w := range wls {
 		key := m.issueKeyFor(w.IssueID)
-		line := fmt.Sprintf("%s %s", domain.FormatDuration(w.TimeSpentSeconds), key)
+		line := fmt.Sprintf("%s %s %s", worklogClockRange(w), domain.FormatDuration(w.TimeSpentSeconds), key)
 		if !w.HasAccount() {
 			line += " " + m.theme.Error.Render("[NO ACCOUNT]")
 		} else {
@@ -199,6 +199,7 @@ func (m Model) renderDetails(width, height int) string {
 
 func (m Model) writeWorklogDetails(b *strings.Builder, w domain.Worklog, width int) {
 	b.WriteString(m.theme.Accent.Render(m.issueKeyFor(w.IssueID)) + "\n")
+	b.WriteString(m.theme.Muted.Render("When:    ") + worklogClockRange(w) + "\n")
 	b.WriteString(m.theme.Muted.Render("Time:    ") + domain.FormatDuration(w.TimeSpentSeconds) + "\n")
 	b.WriteString(m.theme.Muted.Render("Date:    ") + w.StartDate + "\n")
 	if w.HasAccount() {
@@ -253,6 +254,22 @@ func (m Model) renderStatusBar() string {
 	bar := lipgloss.NewStyle().Width(m.width).Render(shortHelp)
 	statusLine := lipgloss.NewStyle().Width(m.width).Render(status)
 	return lipgloss.JoinVertical(lipgloss.Left, statusLine, bar)
+}
+
+// worklogClockRange renders a worklog's time span as "16:05–17:35". When the
+// start time is unknown it shows just the duration bounds it can ("–").
+func worklogClockRange(w domain.Worklog) string {
+	start := ""
+	if len(w.StartTime) >= 5 {
+		if _, err := domain.ParseClock(w.StartTime[:5]); err == nil {
+			start = w.StartTime[:5]
+		}
+	}
+	if start == "" {
+		return "--:--"
+	}
+	end := domain.AddClock(start, w.TimeSpentSeconds/60)
+	return start + "–" + end
 }
 
 // issueKeyFor resolves an issue id to a human key using the loaded issues,
