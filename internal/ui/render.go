@@ -173,9 +173,13 @@ func (m Model) renderIssues(width, height int) string {
 		}
 		line := fmt.Sprintf("%s %s", iss.Key, iss.Summary)
 		line = truncate(line, width-4)
-		if i == m.issueCursor && m.focused == panelIssues {
+		switch {
+		case i == m.issueCursor && m.focused == panelIssues:
 			line = m.theme.Selected.Render("› " + line)
-		} else {
+		case i == m.issueCursor:
+			// Keep the selection visible (dimmer) when the panel is not focused.
+			line = m.theme.SelectedBlurred.Render("› " + line)
+		default:
 			line = "  " + m.theme.Text.Render(line)
 		}
 		b.WriteString(marker + line + "\n")
@@ -241,10 +245,14 @@ func (m Model) renderWeek(width, height int) string {
 		timeStyle := m.theme.Accent
 		bodyStyle := m.theme.Text
 		prefix := "  "
-		if i == m.worklogCursor && m.focused == panelWeek {
-			prefix = m.theme.Selected.Render("› ")
-			timeStyle = m.theme.Selected
-			bodyStyle = m.theme.Selected
+		if i == m.worklogCursor {
+			sel := m.theme.Selected
+			if m.focused != panelWeek {
+				sel = m.theme.SelectedBlurred
+			}
+			prefix = sel.Render("› ")
+			timeStyle = sel
+			bodyStyle = sel
 		}
 
 		acct := m.theme.Muted.Render("[" + w.AccountKey + "]")

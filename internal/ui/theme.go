@@ -32,9 +32,13 @@ type Theme struct {
 	TitleBlurred lipgloss.Style
 
 	// Text styles.
-	Text     lipgloss.Style
-	Muted    lipgloss.Style
-	Selected lipgloss.Style
+	Text  lipgloss.Style
+	Muted lipgloss.Style
+	// Selected is the highlight for the row under the cursor in the focused
+	// panel; SelectedBlurred keeps that row marked, dimmer, when the panel is
+	// not focused so the selection is still visible.
+	Selected        lipgloss.Style
+	SelectedBlurred lipgloss.Style
 
 	// Semantic styles.
 	Success lipgloss.Style
@@ -70,9 +74,10 @@ func NewTheme() Theme {
 		TitleFocused: lipgloss.NewStyle().Foreground(ColorPrimary).Bold(true),
 		TitleBlurred: lipgloss.NewStyle().Foreground(ColorMuted).Bold(true),
 
-		Text:     base,
-		Muted:    lipgloss.NewStyle().Foreground(ColorMuted),
-		Selected: lipgloss.NewStyle().Foreground(ColorSecondary).Bold(true),
+		Text:            base,
+		Muted:           lipgloss.NewStyle().Foreground(ColorMuted),
+		Selected:        lipgloss.NewStyle().Foreground(ColorSecondary).Bold(true),
+		SelectedBlurred: lipgloss.NewStyle().Foreground(ColorSecondary),
 
 		Success: lipgloss.NewStyle().Foreground(ColorSuccess),
 		Warning: lipgloss.NewStyle().Foreground(ColorWarning),
