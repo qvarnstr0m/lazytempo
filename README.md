@@ -50,6 +50,17 @@ gauge, and a last-synced indicator. Below it the screen is two columns:
 
 ## Install
 
+### Homebrew (macOS)
+
+```sh
+brew install qvarnstr0m/tap/lazytempo
+```
+
+On Linux, download a binary from the [releases](https://github.com/qvarnstr0m/lazytempo/releases)
+or use `go install` below.
+
+### From source
+
 ```sh
 make build     # build to ./bin/lazytempo
 make install   # install into $GOBIN (or $GOPATH/bin)

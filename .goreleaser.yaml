@@ -1,0 +1,65 @@
+# GoReleaser configuration — https://goreleaser.com
+# Builds cross-platform binaries, publishes a GitHub Release, and updates the
+# Homebrew formula in qvarnstr0m/homebrew-tap on each `vX.Y.Z` tag.
+version: 2
+
+project_name: lazytempo
+
+builds:
+  - id: lazytempo
+    main: ./cmd/lazytempo
+    binary: lazytempo
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+      - THIRD_PARTY_NOTICES.md
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+# Homebrew cask (macOS). Casks are macOS-only; Linux users use the release
+# tarball or `go install`.
+homebrew_casks:
+  - name: lazytempo
+    repository:
+      owner: qvarnstr0m
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: "https://github.com/qvarnstr0m/lazytempo"
+    description: "A lazygit-style terminal UI for logging time in Tempo against Jira issues"
+    binaries:
+      - lazytempo
+    commit_author:
+      name: goreleaser-bot
+      email: goreleaser@users.noreply.github.com
+    # The binaries are unsigned; strip the Gatekeeper quarantine on install.
+    hooks:
+      post:
+        install_steps: |
+          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/lazytempo"]
