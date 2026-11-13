@@ -45,10 +45,10 @@ type worklogForm struct {
 // preselected start time ("HH:MM") for a new worklog; the end defaults to one
 // hour later (clamped to the end of the day).
 func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect string, existing *domain.Worklog, defaultDate time.Time, defaultStart string, requireAccount, usStyle bool) *worklogForm {
-	// Default to the given start and one hour later, both snapped to the
+	// Default to the given start and one step (5 min) later, both snapped to the
 	// dropdown grid (a Select cannot display a value absent from its options).
 	start := snapToStep(defaultStart)
-	end := snapToStep(domain.AddClock(start, 60))
+	end := snapToStep(domain.AddClock(start, clockStepMinutes))
 	if _, err := domain.SecondsBetween(start, end); err != nil {
 		// Too close to midnight for a later end on the grid; use the last slot.
 		start, end = "23:50", "23:55"

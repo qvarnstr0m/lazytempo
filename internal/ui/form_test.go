@@ -32,13 +32,13 @@ func TestWorklogFormInputFromStartEnd(t *testing.T) {
 }
 
 func TestWorklogFormDefaultsStartToNow(t *testing.T) {
-	// A new worklog defaults start to the given time and end to one hour later.
+	// A new worklog defaults start to the given time and end to 5 minutes later.
 	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "16:05", true, false)
 	if f.startStr != "16:05" {
 		t.Errorf("start = %q, want 16:05", f.startStr)
 	}
-	if f.endStr != "17:05" {
-		t.Errorf("end = %q, want 17:05", f.endStr)
+	if f.endStr != "16:10" {
+		t.Errorf("end = %q, want 16:10", f.endStr)
 	}
 	// Late in the day, the end clamps to the last slot but stays after start.
 	f = newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "23:40", true, false)

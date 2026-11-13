@@ -699,8 +699,9 @@ func (m *Model) openPendingForm() tea.Cmd {
 	defaultKey := domain.DefaultAccountKey(projectID, m.cache.Accounts(), links)
 	preselect := domain.PreselectAccount(selectable, lastUsed, defaultKey)
 
-	defaultDate := m.weekStart.AddDate(0, 0, m.selectedDay)
+	// A new worklog always defaults to today's date and the current time.
 	now := time.Now()
+	defaultDate := now
 	defaultStart := domain.RoundClock(now.Hour()*60+now.Minute(), clockStepMinutes)
 	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, defaultDate, defaultStart, m.cfg.RequireAccount, m.cfg.Hour12())
 	m.form.form = m.form.form.WithWidth(formContentWidth(m.width)).WithHeight(formContentHeight(m.height))
