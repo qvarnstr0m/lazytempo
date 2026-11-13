@@ -207,9 +207,9 @@ func (m Model) renderIssues(width, height int) string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
-// renderWeek renders the Week panel: a per-day gauge summary (chronological,
-// Monday first), the week total, and the whole week's worklogs grouped by day
-// (newest day first).
+// renderWeek renders the Week panel: a per-day gauge summary, the week total,
+// and the whole week's worklogs grouped by day — both in chronological order
+// (Monday at the top, Sunday at the bottom).
 func (m Model) renderWeek(width, height int) string {
 	var b strings.Builder
 
@@ -297,8 +297,8 @@ func (m Model) renderWeek(width, height int) string {
 
 	var wlLines []string
 	selLine := -1
-	// Newest-first: iterate the days in reverse.
-	for di := len(m.days) - 1; di >= 0; di-- {
+	// Chronological: iterate the days forward (Monday first).
+	for di := 0; di < len(m.days); di++ {
 		d := m.days[di]
 		wls := d.Worklogs
 		if len(wls) == 0 && di != m.selectedDay {

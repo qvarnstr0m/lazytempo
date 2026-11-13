@@ -56,14 +56,14 @@ type searchDebounceMsg struct {
 
 // pendingSelect records where the worklog cursor should land once a newly
 // requested week's worklogs have loaded (used when up/down crosses a week).
-// Days are shown newest-first, so "top of week" is the latest day and "bottom
-// of week" is the earliest.
+// Days are shown chronologically, so "top of week" is the earliest day
+// (Monday) and "bottom of week" is the latest (Sunday).
 type pendingSelect int
 
 const (
 	selectNone         pendingSelect = iota
-	selectTopOfWeek                  // latest day, first worklog (top of the reversed list)
-	selectBottomOfWeek               // earliest day, last worklog (bottom of the reversed list)
+	selectTopOfWeek                  // earliest day (Monday), first worklog (top of the list)
+	selectBottomOfWeek               // latest day (Sunday), last worklog (bottom of the list)
 )
 
 // formRequest records a pending request to open the worklog form once account
@@ -459,52 +459,43 @@ func (m Model) handleIssuesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// weekMoveDown moves one row down the (newest-first) list: down within the day,
-// then into the earlier day below, then — past the earliest day — into the top
-// (latest day) of the previous week.
+// weekMoveDown moves one row down the chronological list: down within the day,
+// then into the later day below, then — past the latest day — into the top
+// (Monday) of the next week.
 func (m Model) weekMoveDown() (tea.Model, tea.Cmd) {
 	if n := len(m.currentDayWorklogs()); n > 0 && m.worklogCursor < n-1 {
 		m.worklogCursor++
 		return m, nil
 	}
-	if pd := m.prevDayWithWorklogs(m.selectedDay); pd >= 0 {
-		m.selectedDay = pd
+	if nd := m.nextDayWithWorklogs(m.selectedDay); nd >= 0 {
+		m.selectedDay = nd
 		m.worklogCursor = 0
 		return m, nil
 	}
-	return m.crossWeek(-1, selectTopOfWeek)
+	return m.crossWeek(1, selectTopOfWeek)
 }
 
-// weekMoveUp moves one row up the (newest-first) list: up within the day, then
-// into the later day above, then — past the latest day — into the bottom
-// (earliest day) of the next week.
+// weekMoveUp moves one row up the chronological list: up within the day, then
+// into the earlier day above, then — past the earliest day — into the bottom
+// (Sunday) of the previous week.
 func (m Model) weekMoveUp() (tea.Model, tea.Cmd) {
 	if m.worklogCursor > 0 {
 		m.worklogCursor--
 		return m, nil
 	}
-	if nd := m.nextDayWithWorklogs(m.selectedDay); nd >= 0 {
-		m.selectedDay = nd
-		m.worklogCursor = len(m.days[nd].Worklogs) - 1
+	if pd := m.prevDayWithWorklogs(m.selectedDay); pd >= 0 {
+		m.selectedDay = pd
+		m.worklogCursor = len(m.days[pd].Worklogs) - 1
 		return m, nil
 	}
-	return m.crossWeek(1, selectBottomOfWeek)
+	return m.crossWeek(-1, selectBottomOfWeek)
 }
 
 func (m Model) handleWeekKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	// In the worklog list j and k are reversed from the issue list: j moves up,
-	// k moves down (the arrow keys keep their usual direction).
-	switch msg.String() {
-	case "j":
-		return m.weekMoveUp()
-	case "k":
-		return m.weekMoveDown()
-	}
-
 	switch {
-	case key.Matches(msg, m.keys.Down): // down arrow
+	case key.Matches(msg, m.keys.Down): // j / down
 		return m.weekMoveDown()
-	case key.Matches(msg, m.keys.Up): // up arrow
+	case key.Matches(msg, m.keys.Up): // k / up
 		return m.weekMoveUp()
 	case key.Matches(msg, m.keys.NextDay):
 		if m.selectedDay < 6 {
@@ -814,17 +805,17 @@ func (m Model) issueByID(id string) *domain.Issue {
 }
 
 // applyPendingWorklog places the cursor at the top/bottom of the just-loaded
-// week (in newest-first order) when a cross-week move requested it. If the week
+// week (in chronological order) when a cross-week move requested it. If the week
 // has no worklogs the selection stays at the start.
 func (m *Model) applyPendingWorklog() {
 	switch m.pendingWorklog {
-	case selectTopOfWeek: // latest day, first worklog
-		if d := m.prevDayWithWorklogs(len(m.days)); d >= 0 {
+	case selectTopOfWeek: // earliest day (Monday), first worklog
+		if d := m.nextDayWithWorklogs(-1); d >= 0 {
 			m.selectedDay = d
 			m.worklogCursor = 0
 		}
-	case selectBottomOfWeek: // earliest day, last worklog
-		if d := m.nextDayWithWorklogs(-1); d >= 0 {
+	case selectBottomOfWeek: // latest day (Sunday), last worklog
+		if d := m.prevDayWithWorklogs(len(m.days)); d >= 0 {
 			m.selectedDay = d
 			m.worklogCursor = len(m.days[d].Worklogs) - 1
 		}
