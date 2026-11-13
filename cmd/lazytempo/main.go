@@ -55,7 +55,7 @@ func run() error {
 
 	doer := httpx.NewDoer(nil)
 	jiraClient := jira.New(cfg.JiraBaseURL, cfg.JiraEmail, cfg.JiraAPIToken, doer)
-	tempoClient := tempo.New(tempo.DefaultBaseURL, cfg.TempoAPIToken, doer)
+	tempoClient := tempo.New(cfg.TempoBaseURL, cfg.TempoAPIToken, doer)
 
 	c, err := cache.Open()
 	if err != nil {

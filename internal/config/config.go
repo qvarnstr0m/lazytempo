@@ -25,6 +25,10 @@ type Config struct {
 	JiraEmail     string `toml:"jira_email"`
 	JiraAPIToken  string `toml:"jira_api_token"`
 	TempoAPIToken string `toml:"tempo_api_token"`
+	// TempoBaseURL overrides the Tempo API base URL. Empty uses the Tempo Cloud
+	// default (https://api.tempo.io/4); set it to point at a self-hosted proxy
+	// or a local mock (e.g. for the demo recording or integration tests).
+	TempoBaseURL string `toml:"tempo_base_url"`
 
 	// MyIssuesJQL is the JQL used to populate the "My issues" panel.
 	MyIssuesJQL string `toml:"my_issues_jql"`
@@ -103,6 +107,9 @@ func (c *Config) applyEnv() {
 	if v := os.Getenv("LAZYTEMPO_TEMPO_API_TOKEN"); v != "" {
 		c.TempoAPIToken = v
 	}
+	if v := os.Getenv("LAZYTEMPO_TEMPO_BASE_URL"); v != "" {
+		c.TempoBaseURL = v
+	}
 	if v := os.Getenv("LAZYTEMPO_MY_ISSUES_JQL"); v != "" {
 		c.MyIssuesJQL = v
 	}
@@ -123,6 +130,7 @@ func (c Config) Hour12() bool {
 
 func (c *Config) normalize() {
 	c.JiraBaseURL = strings.TrimRight(strings.TrimSpace(c.JiraBaseURL), "/")
+	c.TempoBaseURL = strings.TrimRight(strings.TrimSpace(c.TempoBaseURL), "/")
 	if c.MyIssuesJQL == "" {
 		c.MyIssuesJQL = defaultJQL
 	}
@@ -208,5 +216,10 @@ tempo_api_token = "your-tempo-api-token"
 # Clock time display/entry: "eu" (24-hour, e.g. 16:05, default) or "us" (12-hour,
 # e.g. 4:05 PM). Worklogs are stored in 24-hour time regardless.
 # time_format = "eu"
+
+# Override the Tempo API base URL (default: https://api.tempo.io/4). Point it at
+# a self-hosted proxy or a local mock, e.g. for integration tests or recording a
+# demo. Env override: LAZYTEMPO_TEMPO_BASE_URL.
+# tempo_base_url = "https://api.tempo.io/4"
 `
 }
