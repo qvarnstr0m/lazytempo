@@ -63,6 +63,27 @@ func TestFormatClockDisplay(t *testing.T) {
 	}
 }
 
+func TestDateDisplayRoundTrip(t *testing.T) {
+	// EU
+	if got := FormatDateDisplay("2026-11-13", false); got != "13/11/2026" {
+		t.Errorf("EU format = %q, want 13/11/2026", got)
+	}
+	if iso, err := ParseDateDisplay("13/11/2026", false); err != nil || iso != "2026-11-13" {
+		t.Errorf("EU parse = %q, %v; want 2026-11-13", iso, err)
+	}
+	// US
+	if got := FormatDateDisplay("2026-11-13", true); got != "11/13/2026" {
+		t.Errorf("US format = %q, want 11/13/2026", got)
+	}
+	if iso, err := ParseDateDisplay("11/13/2026", true); err != nil || iso != "2026-11-13" {
+		t.Errorf("US parse = %q, %v; want 2026-11-13", iso, err)
+	}
+	// Invalid input errors with a helpful hint.
+	if _, err := ParseDateDisplay("2026-11-13", false); err == nil {
+		t.Error("ISO input should not parse as EU display format")
+	}
+}
+
 func TestRoundClock(t *testing.T) {
 	cases := map[int]string{
 		16*60 + 3:  "16:05", // 16:03 -> nearest is 16:05

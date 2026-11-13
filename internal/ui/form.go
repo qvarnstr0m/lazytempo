@@ -36,6 +36,7 @@ type worklogForm struct {
 
 	accounts       []domain.Account
 	requireAccount bool
+	usStyle        bool // 12-hour time + MM/DD/YYYY dates
 }
 
 // newWorklogForm builds a form for the given issue. selectable is the list of
@@ -43,7 +44,7 @@ type worklogForm struct {
 // key (may be empty). existing is non-nil when editing. defaultStart is the
 // preselected start time ("HH:MM") for a new worklog; the end defaults to one
 // hour later (clamped to the end of the day).
-func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect string, existing *domain.Worklog, defaultDate time.Time, defaultStart string, requireAccount, hour12 bool) *worklogForm {
+func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect string, existing *domain.Worklog, defaultDate time.Time, defaultStart string, requireAccount, usStyle bool) *worklogForm {
 	// Default to the given start and one hour later, both snapped to the
 	// dropdown grid (a Select cannot display a value absent from its options).
 	start := snapToStep(defaultStart)
@@ -56,7 +57,8 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		issue:      issue,
 		accounts:   selectable,
 		accountKey: preselect,
-		dateStr:    defaultDate.Format(dateLayout),
+		usStyle:    usStyle,
+		dateStr:    domain.FormatDateDisplay(defaultDate.Format(dateLayout), usStyle),
 		startStr:   start,
 		endStr:     end,
 	}
@@ -65,7 +67,7 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		f.editID = existing.ID
 		f.accountKey = existing.AccountKey
 		if existing.StartDate != "" {
-			f.dateStr = existing.StartDate
+			f.dateStr = domain.FormatDateDisplay(existing.StartDate, usStyle)
 		}
 		// Derive start/end from the existing worklog's start time + duration,
 		// snapping the start to the dropdown grid.
@@ -95,7 +97,7 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		accountOptions = append(accountOptions, huh.NewOption(fmt.Sprintf("%s (%s)", label, a.Key), a.Key))
 	}
 
-	clockOptions := clockSelectOptions(hour12)
+	clockOptions := clockSelectOptions(usStyle)
 
 	accountTitle := "Account (required)"
 	accountDesc := "Every worklog must have a Tempo account."
@@ -146,13 +148,11 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 	dateField := huh.NewInput().
 		Key("date").
 		Title("Date").
-		Placeholder(dateLayout).
+		Placeholder(domain.DateHint(usStyle)).
 		Value(&f.dateStr).
 		Validate(func(s string) error {
-			if _, err := time.Parse(dateLayout, s); err != nil {
-				return fmt.Errorf("use format YYYY-MM-DD")
-			}
-			return nil
+			_, err := domain.ParseDateDisplay(s, usStyle)
+			return err
 		})
 
 	descField := huh.NewText().
@@ -212,10 +212,14 @@ func (f *worklogForm) input() (tempo.WorklogInput, error) {
 	if err != nil {
 		return tempo.WorklogInput{}, err
 	}
+	isoDate, err := domain.ParseDateDisplay(f.dateStr, f.usStyle)
+	if err != nil {
+		return tempo.WorklogInput{}, err
+	}
 	return tempo.WorklogInput{
 		IssueID:                  f.issue.ID,
 		TimeSpentSeconds:         seconds,
-		StartDate:                f.dateStr,
+		StartDate:                isoDate,
 		StartTime:                f.startStr + ":00",
 		Description:              f.desc,
 		AccountKey:               f.accountKey,

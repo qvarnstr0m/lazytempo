@@ -93,7 +93,30 @@ func TestWorklogFormEditDerivesRange(t *testing.T) {
 	if f.startStr != "16:05" || f.endStr != "17:35" {
 		t.Errorf("derived range = %s–%s, want 16:05–17:35", f.startStr, f.endStr)
 	}
-	if f.dateStr != "2026-11-10" {
-		t.Errorf("date = %q, want 2026-11-10", f.dateStr)
+	// The date is shown in EU display format and round-trips back to ISO.
+	if f.dateStr != "10/11/2026" {
+		t.Errorf("date display = %q, want 10/11/2026", f.dateStr)
+	}
+	in, err := f.input()
+	if err != nil {
+		t.Fatalf("input: %v", err)
+	}
+	if in.StartDate != "2026-11-10" {
+		t.Errorf("StartDate = %q, want 2026-11-10 (ISO)", in.StartDate)
+	}
+}
+
+func TestWorklogFormUSDate(t *testing.T) {
+	existing := &domain.Worklog{StartTime: "09:00:00", TimeSpentSeconds: 3600, StartDate: "2026-11-13", AccountKey: "CORE"}
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", existing, time.Now(), "09:00", true, true)
+	if f.dateStr != "11/13/2026" {
+		t.Errorf("US date display = %q, want 11/13/2026", f.dateStr)
+	}
+	in, err := f.input()
+	if err != nil {
+		t.Fatalf("input: %v", err)
+	}
+	if in.StartDate != "2026-11-13" {
+		t.Errorf("US StartDate = %q, want 2026-11-13 (ISO)", in.StartDate)
 	}
 }

@@ -31,9 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `time_format` config (default `eu`; env `LAZYTEMPO_TIME_FORMAT`): `eu` shows
-  and enters clock times in 24-hour form (`16:05`), `us` in 12-hour form
-  (`4:05 PM`). Applies to the worklog form dropdowns and the week/details views;
-  worklogs are always stored in 24-hour time.
+  and enters clock times in 24-hour form (`16:05`) and dates as `DD/MM/YYYY`;
+  `us` uses 12-hour time (`4:05 PM`) and `MM/DD/YYYY`. Applies to the worklog
+  form and the week/details views; times are stored in 24-hour and dates in ISO
+  `YYYY-MM-DD`.
 - `require_account` config (default `true`; env `LAZYTEMPO_REQUIRE_ACCOUNT`).
   When false, the worklog account becomes optional (a `(no account)` choice),
   logging is never blocked for lacking an account, and account-less worklogs are

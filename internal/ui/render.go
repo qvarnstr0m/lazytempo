@@ -397,7 +397,7 @@ func (m Model) writeWorklogDetails(b *strings.Builder, w domain.Worklog, width i
 	b.WriteString(m.theme.Accent.Render(m.issueKeyFor(w.IssueID)) + "\n")
 	b.WriteString(m.theme.Muted.Render("When:    ") + m.theme.Accent.Render(m.worklogClockRange(w)) + "\n")
 	b.WriteString(m.theme.Muted.Render("Time:    ") + m.theme.Text.Render(domain.FormatDuration(w.TimeSpentSeconds)) + "\n")
-	b.WriteString(m.theme.Muted.Render("Date:    ") + m.theme.Text.Render(w.StartDate) + "\n")
+	b.WriteString(m.theme.Muted.Render("Date:    ") + m.theme.Text.Render(domain.FormatDateDisplay(w.StartDate, m.cfg.Hour12())) + "\n")
 	switch {
 	case w.HasAccount():
 		b.WriteString(m.theme.Muted.Render("Account: ") + m.theme.Text.Render(w.AccountKey) + "\n")

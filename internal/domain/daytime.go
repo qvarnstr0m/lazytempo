@@ -4,10 +4,48 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // ClockLayout is the 24-hour European clock format used in the UI (e.g. 16:05).
 const ClockLayout = "15:04"
+
+// ISODate is the canonical date layout used for storage and the Tempo API.
+const ISODate = "2006-01-02"
+
+func dateGoLayout(us bool) string {
+	if us {
+		return "01/02/2006" // MM/DD/YYYY
+	}
+	return "02/01/2006" // DD/MM/YYYY
+}
+
+// DateHint returns a human placeholder for the display date format.
+func DateHint(us bool) string {
+	if us {
+		return "MM/DD/YYYY"
+	}
+	return "DD/MM/YYYY"
+}
+
+// FormatDateDisplay renders a canonical ISO date ("2006-01-02") in the display
+// format (US: MM/DD/YYYY, EU: DD/MM/YYYY). On a parse failure it returns input.
+func FormatDateDisplay(iso string, us bool) string {
+	t, err := time.Parse(ISODate, iso)
+	if err != nil {
+		return iso
+	}
+	return t.Format(dateGoLayout(us))
+}
+
+// ParseDateDisplay parses a display-format date back to canonical ISO.
+func ParseDateDisplay(s string, us bool) (string, error) {
+	t, err := time.Parse(dateGoLayout(us), strings.TrimSpace(s))
+	if err != nil {
+		return "", fmt.Errorf("use format %s", DateHint(us))
+	}
+	return t.Format(ISODate), nil
+}
 
 // TimeOptions returns the clock labels of a day at the given step in minutes,
 // from 00:00 up to (but not including) 24:00, in "HH:MM" 24-hour format.
