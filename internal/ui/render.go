@@ -222,7 +222,9 @@ func (m Model) renderWeek(width, height int) string {
 
 	target := m.cfg.TargetSecondsPerDay()
 	const gaugeCells = 12
-	for i, d := range m.days {
+	// Days are shown newest-first (latest day at the top).
+	for i := len(m.days) - 1; i >= 0; i-- {
+		d := m.days[i]
 		total := d.TotalSeconds()
 		dayLabel := d.Date.Format("Mon 02")
 		weekend := d.Date.Weekday() == time.Saturday || d.Date.Weekday() == time.Sunday
@@ -294,7 +296,9 @@ func (m Model) renderWeek(width, height int) string {
 
 	var wlLines []string
 	selLine := -1
-	for di, d := range m.days {
+	// Newest-first: iterate the days in reverse.
+	for di := len(m.days) - 1; di >= 0; di-- {
+		d := m.days[di]
 		wls := d.Worklogs
 		if len(wls) == 0 && di != m.selectedDay {
 			continue

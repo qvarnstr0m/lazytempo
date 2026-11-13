@@ -43,8 +43,9 @@ gauge, and a last-synced indicator. Below it the screen is two columns:
     is focused).
 - **Right column — Week:** a per-day gauge against the target (default 8h/day,
   green at/above, pink below, with the over/under), the week total, and the
-  whole week's worklogs grouped by day. `h`/`l` selects the day, `j`/`k` moves
-  within the selected day's worklogs.
+  whole week's worklogs grouped by day — **newest day on top**. `h`/`l` selects
+  the day, `j`/`k` moves through worklogs (down = older, up = newer) and rolls
+  into the previous/next week at the ends.
 - **Bottom — Status bar:** keybindings, errors and confirmations.
 
 ## Install

@@ -127,20 +127,21 @@ func weekKey(m Model, kt tea.KeyType) Model {
 }
 
 func TestWeekWorklogCrossDayNav(t *testing.T) {
+	// Newest-first: Thu (idx 3) is on top, Mon (idx 0) below.
 	m := weekNavModel()
 
-	// First worklog of Thu; up jumps to the last of Mon.
+	// Down from Thu (top) moves into Mon below.
 	m.selectedDay, m.worklogCursor = 3, 0
-	mm := weekKey(m, tea.KeyUp)
-	if mm.selectedDay != 0 || mm.worklogCursor != 1 {
-		t.Fatalf("up from Thu[0] -> day %d cursor %d, want day 0 cursor 1", mm.selectedDay, mm.worklogCursor)
+	mm := weekKey(m, tea.KeyDown)
+	if mm.selectedDay != 0 || mm.worklogCursor != 0 {
+		t.Fatalf("down from Thu[0] -> day %d cursor %d, want day 0 cursor 0", mm.selectedDay, mm.worklogCursor)
 	}
 
-	// Last worklog of Mon; down jumps to the first of Thu.
-	mm.selectedDay, mm.worklogCursor = 0, 1
-	mm = weekKey(mm, tea.KeyDown)
+	// Up from Mon[0] goes back up to Thu.
+	mm.selectedDay, mm.worklogCursor = 0, 0
+	mm = weekKey(mm, tea.KeyUp)
 	if mm.selectedDay != 3 || mm.worklogCursor != 0 {
-		t.Fatalf("down from Mon[last] -> day %d cursor %d, want day 3 cursor 0", mm.selectedDay, mm.worklogCursor)
+		t.Fatalf("up from Mon[0] -> day %d cursor %d, want day 3 cursor 0", mm.selectedDay, mm.worklogCursor)
 	}
 }
 
@@ -173,33 +174,34 @@ func TestWeekWorklogCrossWeek(t *testing.T) {
 	m := weekNavModel()
 	start := m.weekStart
 
-	// At the very top (Mon[0]), up crosses to the previous week, pending "last".
-	m.selectedDay, m.worklogCursor = 0, 0
-	mm := weekKey(m, tea.KeyUp)
-	if !mm.weekStart.Equal(start.AddDate(0, 0, -7)) {
-		t.Errorf("up at top: weekStart = %v, want previous week", mm.weekStart)
-	}
-	if mm.pendingWorklog != selectLast {
-		t.Errorf("up at top: pending = %v, want selectLast", mm.pendingWorklog)
-	}
-
-	// At the very bottom (Thu[0], its only one), down crosses to the next week.
-	m = weekNavModel()
+	// Top of the newest-first list is Thu; up there crosses to the NEXT week.
 	m.selectedDay, m.worklogCursor = 3, 0
-	mm = weekKey(m, tea.KeyDown)
+	mm := weekKey(m, tea.KeyUp)
 	if !mm.weekStart.Equal(start.AddDate(0, 0, 7)) {
-		t.Errorf("down at bottom: weekStart = %v, want next week", mm.weekStart)
+		t.Errorf("up at top: weekStart = %v, want next week", mm.weekStart)
 	}
-	if mm.pendingWorklog != selectFirst {
-		t.Errorf("down at bottom: pending = %v, want selectFirst", mm.pendingWorklog)
+	if mm.pendingWorklog != selectBottomOfWeek {
+		t.Errorf("up at top: pending = %v, want selectBottomOfWeek", mm.pendingWorklog)
 	}
 
-	// Once the new week's worklogs load, "last" lands on the last worklog.
+	// Bottom of the list is Mon's last worklog; down there crosses to the
+	// PREVIOUS week.
+	m = weekNavModel()
+	m.selectedDay, m.worklogCursor = 0, 1
+	mm = weekKey(m, tea.KeyDown)
+	if !mm.weekStart.Equal(start.AddDate(0, 0, -7)) {
+		t.Errorf("down at bottom: weekStart = %v, want previous week", mm.weekStart)
+	}
+	if mm.pendingWorklog != selectTopOfWeek {
+		t.Errorf("down at bottom: pending = %v, want selectTopOfWeek", mm.pendingWorklog)
+	}
+
+	// selectTopOfWeek lands on the latest day (Thu), first worklog.
 	mm.days = weekNavModel().days // simulate the loaded week having the same shape
-	mm.pendingWorklog = selectLast
+	mm.pendingWorklog = selectTopOfWeek
 	mm.applyPendingWorklog()
 	if mm.selectedDay != 3 || mm.worklogCursor != 0 {
-		t.Errorf("applyPendingWorklog(last) -> day %d cursor %d, want day 3 cursor 0", mm.selectedDay, mm.worklogCursor)
+		t.Errorf("applyPendingWorklog(top) -> day %d cursor %d, want day 3 cursor 0", mm.selectedDay, mm.worklogCursor)
 	}
 	if mm.pendingWorklog != selectNone {
 		t.Error("pending should be cleared after applying")

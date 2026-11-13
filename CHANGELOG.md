@@ -64,6 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Jira `myself` lookup now also reads the display name.
 
 ### Changed
+- The Week panel now lists days newest-first (latest day on top) in both the
+  gauges and the worklog groups. Worklog `j`/`k` navigation follows suit — down
+  moves to older entries, up to newer — and rolls into the previous/next week at
+  the ends.
 - The layout is now two columns: the left column stacks Issues (top ~2/3,
   scrollable) over Details (bottom ~1/3), and the right column is the Week
   panel. The issue list scrolls with the cursor and shows how many rows are

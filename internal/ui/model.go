@@ -56,12 +56,14 @@ type searchDebounceMsg struct {
 
 // pendingSelect records where the worklog cursor should land once a newly
 // requested week's worklogs have loaded (used when up/down crosses a week).
+// Days are shown newest-first, so "top of week" is the latest day and "bottom
+// of week" is the earliest.
 type pendingSelect int
 
 const (
-	selectNone pendingSelect = iota
-	selectFirst
-	selectLast
+	selectNone         pendingSelect = iota
+	selectTopOfWeek                  // latest day, first worklog (top of the reversed list)
+	selectBottomOfWeek               // earliest day, last worklog (bottom of the reversed list)
 )
 
 // formRequest records a pending request to open the worklog form once account
@@ -457,34 +459,36 @@ func (m Model) handleIssuesKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// weekMoveDown advances the worklog cursor: within the day, then into the next
-// day's first worklog, then into the next week's first worklog.
+// weekMoveDown moves one row down the (newest-first) list: down within the day,
+// then into the earlier day below, then — past the earliest day — into the top
+// (latest day) of the previous week.
 func (m Model) weekMoveDown() (tea.Model, tea.Cmd) {
 	if n := len(m.currentDayWorklogs()); n > 0 && m.worklogCursor < n-1 {
 		m.worklogCursor++
 		return m, nil
 	}
-	if nd := m.nextDayWithWorklogs(m.selectedDay); nd >= 0 {
-		m.selectedDay = nd
+	if pd := m.prevDayWithWorklogs(m.selectedDay); pd >= 0 {
+		m.selectedDay = pd
 		m.worklogCursor = 0
 		return m, nil
 	}
-	return m.crossWeek(1, selectFirst)
+	return m.crossWeek(-1, selectTopOfWeek)
 }
 
-// weekMoveUp retreats the worklog cursor: within the day, then into the previous
-// day's last worklog, then into the previous week's last worklog.
+// weekMoveUp moves one row up the (newest-first) list: up within the day, then
+// into the later day above, then — past the latest day — into the bottom
+// (earliest day) of the next week.
 func (m Model) weekMoveUp() (tea.Model, tea.Cmd) {
 	if m.worklogCursor > 0 {
 		m.worklogCursor--
 		return m, nil
 	}
-	if pd := m.prevDayWithWorklogs(m.selectedDay); pd >= 0 {
-		m.selectedDay = pd
-		m.worklogCursor = len(m.days[pd].Worklogs) - 1
+	if nd := m.nextDayWithWorklogs(m.selectedDay); nd >= 0 {
+		m.selectedDay = nd
+		m.worklogCursor = len(m.days[nd].Worklogs) - 1
 		return m, nil
 	}
-	return m.crossWeek(-1, selectLast)
+	return m.crossWeek(1, selectBottomOfWeek)
 }
 
 func (m Model) handleWeekKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -809,18 +813,18 @@ func (m Model) issueByID(id string) *domain.Issue {
 	return nil
 }
 
-// applyPendingWorklog places the cursor on the first/last worklog of the just
-// loaded week when a cross-week move requested it. If the week has no worklogs
-// the selection stays at the start.
+// applyPendingWorklog places the cursor at the top/bottom of the just-loaded
+// week (in newest-first order) when a cross-week move requested it. If the week
+// has no worklogs the selection stays at the start.
 func (m *Model) applyPendingWorklog() {
 	switch m.pendingWorklog {
-	case selectFirst:
-		if d := m.nextDayWithWorklogs(-1); d >= 0 {
+	case selectTopOfWeek: // latest day, first worklog
+		if d := m.prevDayWithWorklogs(len(m.days)); d >= 0 {
 			m.selectedDay = d
 			m.worklogCursor = 0
 		}
-	case selectLast:
-		if d := m.prevDayWithWorklogs(len(m.days)); d >= 0 {
+	case selectBottomOfWeek: // earliest day, last worklog
+		if d := m.nextDayWithWorklogs(-1); d >= 0 {
 			m.selectedDay = d
 			m.worklogCursor = len(m.days[d].Worklogs) - 1
 		}
