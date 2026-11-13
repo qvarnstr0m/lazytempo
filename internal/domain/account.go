@@ -5,9 +5,8 @@ import (
 	"sort"
 )
 
-// ErrNoAccount is the validation error for a worklog that has no account.
-// Every worklog MUST have a Tempo account attached; one without must never be
-// submitted.
+// ErrNoAccount is the validation error for a worklog that has no account, used
+// when the account rule is enforced (see Validate and require_account).
 var ErrNoAccount = errors.New("an account is required for every worklog")
 
 // ErrNoTimeSpent is returned when a worklog has no positive time.

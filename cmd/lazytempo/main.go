@@ -1,5 +1,5 @@
 // Command lazytempo is a terminal UI for logging time in Tempo against Jira
-// issues, in the style of lazygit. Every worklog must have a Tempo account.
+// issues, in the style of lazygit.
 package main
 
 import (

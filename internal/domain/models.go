@@ -72,8 +72,8 @@ type Worklog struct {
 	AccountKey       string // the ACCOUNT attribute value; empty means "no account"
 }
 
-// HasAccount reports whether the worklog has a Tempo account attached.
-// A worklog without an account must never be submitted (see Validate) and is
+// HasAccount reports whether the worklog has a Tempo account attached. When the
+// account rule is enforced, a worklog without one is rejected (see Validate) and
 // highlighted in the week view.
 func (w Worklog) HasAccount() bool {
 	return w.AccountKey != ""

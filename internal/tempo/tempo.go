@@ -3,8 +3,8 @@
 //
 // The behaviour is defined by the Client interface so the UI can be tested with
 // mocks. The ACCOUNT work-attribute key is resolved dynamically (commonly
-// "_Account_" but configurable per installation) and used to read and write the
-// mandatory account on every worklog.
+// "_Account_" but configurable per installation) and used to read and write a
+// worklog's account; an empty account is simply omitted.
 package tempo
 
 import (

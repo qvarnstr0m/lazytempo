@@ -207,8 +207,8 @@ func (m Model) renderIssues(width, height int) string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
-// renderWeek renders the center week panel: a row per day plus the selected
-// day's worklogs.
+// renderWeek renders the Week panel: a per-day gauge row, the week total, and
+// the whole week's worklogs grouped by day (newest day first).
 func (m Model) renderWeek(width, height int) string {
 	var b strings.Builder
 

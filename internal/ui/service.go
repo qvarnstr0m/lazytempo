@@ -294,8 +294,8 @@ func (s *Service) LoadAccountLinks(projectID string) tea.Cmd {
 	}
 }
 
-// SaveWorklog creates or updates a worklog. The account is mandatory and the
-// input is validated before any request is made.
+// SaveWorklog creates or updates a worklog. The input is validated (including
+// the account rule when require_account is set) before any request is made.
 func (s *Service) SaveWorklog(editID int, in tempo.WorklogInput) tea.Cmd {
 	return func() tea.Msg {
 		wl := domain.Worklog{

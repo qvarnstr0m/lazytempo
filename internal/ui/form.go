@@ -18,7 +18,7 @@ const clockStepMinutes = 5
 const accountSelectHeight = 8
 
 // worklogForm wraps a Huh form for creating or editing a worklog. The account
-// field is mandatory: the form cannot be submitted without a selected account.
+// field is required unless require_account is disabled.
 //
 // Time is entered as start and end clock times (5-minute steps, 24-hour
 // European format, e.g. 16:05); the duration is derived from them.
