@@ -47,6 +47,37 @@ func TestWorklogFormDefaultsStartToNow(t *testing.T) {
 	}
 }
 
+func TestWorklogFormPreselectedAccountFirst(t *testing.T) {
+	// Name-sorted accounts with a mid-list preselection; it must be ordered
+	// first so Huh doesn't scroll the earlier ones out of view.
+	accts := []domain.Account{
+		{ID: 1, Key: "AAA", Name: "Aaa", Status: "OPEN"},
+		{ID: 2, Key: "BBB", Name: "Bbb", Status: "OPEN"},
+		{ID: 3, Key: "CCC", Name: "Ccc", Status: "OPEN"},
+	}
+	f := newWorklogForm(domain.Issue{ID: "1"}, accts, "CCC", nil, time.Now(), "09:00", true, false)
+	// The account field is the first field; its first option should be CCC.
+	if f.accountKey != "CCC" {
+		t.Fatalf("preselect = %q, want CCC", f.accountKey)
+	}
+	_ = f.form.Init()
+	v := f.form.View()
+	ai := indexOf(v, "Ccc (CCC)")
+	bi := indexOf(v, "Aaa (AAA)")
+	if ai < 0 || bi < 0 || ai > bi {
+		t.Errorf("preselected CCC should appear before AAA in the options")
+	}
+}
+
+func indexOf(s, sub string) int {
+	for i := 0; i+len(sub) <= len(s); i++ {
+		if s[i:i+len(sub)] == sub {
+			return i
+		}
+	}
+	return -1
+}
+
 func TestWorklogFormOptionalAccount(t *testing.T) {
 	// With requireAccount=false, no accounts and an empty selection are allowed.
 	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "", nil, time.Now(), "09:00", false, false)

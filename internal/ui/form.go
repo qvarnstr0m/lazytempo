@@ -89,7 +89,22 @@ func newWorklogForm(issue domain.Issue, selectable []domain.Account, preselect s
 		// Allow choosing no account when the rule is relaxed.
 		accountOptions = append(accountOptions, huh.NewOption("(no account)", ""))
 	}
+	// Put the preselected account first. Huh scrolls the selected option to the
+	// top of its viewport (and does not clamp it on first render), so a
+	// mid-list preselection would hide the accounts above it until a key is
+	// pressed; leading with it keeps the selected index at the top.
+	ordered := make([]domain.Account, 0, len(selectable))
 	for _, a := range selectable {
+		if a.Key == preselect {
+			ordered = append(ordered, a)
+		}
+	}
+	for _, a := range selectable {
+		if a.Key != preselect {
+			ordered = append(ordered, a)
+		}
+	}
+	for _, a := range ordered {
 		label := a.Name
 		if label == "" {
 			label = a.Key
