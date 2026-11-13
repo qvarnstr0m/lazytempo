@@ -12,9 +12,6 @@ runtime dependencies.
 
 ![lazytempo demo](assets/demo.gif)
 
-> The recording above runs against a local mock API with fictional data — no
-> real Jira or Tempo account is involved.
-
 ## Layout
 
 ```
@@ -176,9 +173,8 @@ worklogs are stored in 24-hour time either way. A new worklog defaults the start
 to the current time rounded to the nearest 5 minutes and the end to one hour
 later. Type in a dropdown to filter it (e.g. `16:0` / `4:0`). The date field
 uses the same `time_format`: `DD-MM-YYYY` (eu) or `MM/DD/YYYY` (us), stored as
-ISO `YYYY-MM-DD`. The
-date defaults to the day selected in the week view, and the week view shows each
-worklog as its `start–end` range.
+ISO `YYYY-MM-DD`. The date defaults to the day selected in the week view, and
+the week view shows each worklog as its `start–end` range.
 
 ## Account rules
 
