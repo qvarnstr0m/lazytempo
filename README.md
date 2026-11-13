@@ -14,22 +14,6 @@ runtime dependencies.
 
 ## Layout
 
-```
-┌─ Issues (1/48) ─────────┐┌─ Week of Nov 10 ──────────────┐
-│ › PROJ-123 Fix login    ││ › Mon 10   8h  (green)        │
-│   PROJ-124 Add feature  ││   Tue 11   6h  (yellow)       │
-│ ★ PROJ-99  Pinned       ││   ...                         │
-│   …                     ││   Week total: 32h             │
-│   — 0 above, 11 below — ││                               │
-├─ Details ───────────────┤│   Worklogs — Mon 10 Nov       │
-│ PROJ-123                ││ › 09:00–11:00 2h PROJ-123 [CORE]
-│ Fix login bug           ││   11:00–12:00 1h PROJ-99 [NO ACCOUNT]
-│ Project: PROJ           ││                               │
-│ Status:  In Dev         ││                               │
-└─────────────────────────┘└───────────────────────────────┘
- ready                     tab switch · a add · e edit · q quit
-```
-
 A header strip across the top shows the app name, your Jira display name, the
 current ISO week and date range, the week total against target with a small
 gauge, and a last-synced indicator. Below it the screen is two columns:
