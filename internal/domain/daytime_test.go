@@ -65,10 +65,10 @@ func TestFormatClockDisplay(t *testing.T) {
 
 func TestDateDisplayRoundTrip(t *testing.T) {
 	// EU
-	if got := FormatDateDisplay("2026-11-13", false); got != "13/11/2026" {
-		t.Errorf("EU format = %q, want 13/11/2026", got)
+	if got := FormatDateDisplay("2026-11-13", false); got != "13-11-2026" {
+		t.Errorf("EU format = %q, want 13-11-2026", got)
 	}
-	if iso, err := ParseDateDisplay("13/11/2026", false); err != nil || iso != "2026-11-13" {
+	if iso, err := ParseDateDisplay("13-11-2026", false); err != nil || iso != "2026-11-13" {
 		t.Errorf("EU parse = %q, %v; want 2026-11-13", iso, err)
 	}
 	// US

@@ -94,8 +94,8 @@ func TestWorklogFormEditDerivesRange(t *testing.T) {
 		t.Errorf("derived range = %s–%s, want 16:05–17:35", f.startStr, f.endStr)
 	}
 	// The date is shown in EU display format and round-trips back to ISO.
-	if f.dateStr != "10/11/2026" {
-		t.Errorf("date display = %q, want 10/11/2026", f.dateStr)
+	if f.dateStr != "10-11-2026" {
+		t.Errorf("date display = %q, want 10-11-2026", f.dateStr)
 	}
 	in, err := f.input()
 	if err != nil {

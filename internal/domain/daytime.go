@@ -17,7 +17,7 @@ func dateGoLayout(us bool) string {
 	if us {
 		return "01/02/2006" // MM/DD/YYYY
 	}
-	return "02/01/2006" // DD/MM/YYYY
+	return "02-01-2006" // DD-MM-YYYY
 }
 
 // DateHint returns a human placeholder for the display date format.
@@ -25,7 +25,7 @@ func DateHint(us bool) string {
 	if us {
 		return "MM/DD/YYYY"
 	}
-	return "DD/MM/YYYY"
+	return "DD-MM-YYYY"
 }
 
 // FormatDateDisplay renders a canonical ISO date ("2006-01-02") in the display
