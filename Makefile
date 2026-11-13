@@ -45,6 +45,10 @@ fmt: ## Format all Go source
 tidy: ## Tidy go.mod/go.sum
 	$(GO) mod tidy
 
+.PHONY: demo
+demo: ## Record the demo GIF into assets/ (needs vhs)
+	./demo/record.sh
+
 .PHONY: check
 check: fmt vet test ## Format, vet and test
 

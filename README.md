@@ -10,6 +10,11 @@ Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea),
 [Huh](https://github.com/charmbracelet/huh). Single static binary, no external
 runtime dependencies.
 
+![lazytempo demo](assets/demo.gif)
+
+> The recording above runs against a local mock API with fictional data — no
+> real Jira or Tempo account is involved.
+
 ## Layout
 
 ```
