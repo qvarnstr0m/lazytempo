@@ -207,8 +207,9 @@ func (m Model) renderIssues(width, height int) string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
-// renderWeek renders the Week panel: a per-day gauge row, the week total, and
-// the whole week's worklogs grouped by day (newest day first).
+// renderWeek renders the Week panel: a per-day gauge summary (chronological,
+// Monday first), the week total, and the whole week's worklogs grouped by day
+// (newest day first).
 func (m Model) renderWeek(width, height int) string {
 	var b strings.Builder
 
@@ -222,8 +223,8 @@ func (m Model) renderWeek(width, height int) string {
 
 	target := m.cfg.TargetSecondsPerDay()
 	const gaugeCells = 12
-	// Days are shown newest-first (latest day at the top).
-	for i := len(m.days) - 1; i >= 0; i-- {
+	// Day summary in chronological order (Monday at the top, Sunday at the bottom).
+	for i := 0; i < len(m.days); i++ {
 		d := m.days[i]
 		total := d.TotalSeconds()
 		dayLabel := d.Date.Format("Mon 02")
