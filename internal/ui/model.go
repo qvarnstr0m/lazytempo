@@ -305,7 +305,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.setStatus("worklog saved")
-		return m, m.startLoad(m.svc.LoadWorklogs(m.weekStart))
+		// Reload the issues too, not just the week panel: saving changes the
+		// issue's remaining estimate in Jira, and the in-memory copy must be
+		// refreshed so a subsequent worklog on the same issue deducts from the
+		// up-to-date value rather than the stale pre-save estimate.
+		return m, tea.Batch(
+			m.startLoad(m.svc.LoadWorklogs(m.weekStart)),
+			m.startLoad(m.svc.LoadIssues()),
+		)
 
 	case worklogDeletedMsg:
 		m.loading--
