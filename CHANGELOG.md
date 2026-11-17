@@ -7,15 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-17
+
 ### Fixed
 - The create/edit worklog form no longer overflows when a project has many
   accounts: the account dropdown is capped at 8 visible rows (type to filter)
   and the whole form is height-constrained so it scrolls, keeping the top of the
   form reachable.
-- Creating or updating a worklog now sends `remainingEstimateSeconds` (the
-  issue's current remaining estimate, fetched from Jira), fixing the Tempo 400
-  "Remaining estimate must not be empty" on projects with estimate tracking.
-  The current estimate is sent unchanged, so logging time does not alter it.
+- Creating or updating a worklog now sends `remainingEstimateSeconds` (fetched
+  from Jira), fixing the Tempo 400 "Remaining estimate must not be empty" on
+  projects with estimate tracking.
+- Saving a worklog now reloads the issue list as well as the week panel, so each
+  issue's remaining estimate stays current. Previously only the week panel
+  refreshed, leaving the in-memory estimate stale, so a second worklog on the
+  same issue deducted from the pre-save value.
 - Panel content is now clipped to its box width (ANSI-aware) as well as its
   height, so long issue summaries are truncated with `…` instead of wrapping.
   Previously, on a small window, wrapped lines made a panel taller than its box
@@ -64,6 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Jira `myself` lookup now also reads the display name.
 
 ### Changed
+- Logging time now reduces the issue's remaining estimate: a new worklog
+  subtracts its duration from the current estimate (floored at zero), mirroring
+  Jira's "reduce remaining estimate". Editing an existing worklog leaves the
+  estimate unchanged, since the time was already deducted when it was created.
 - The Week panel now lists days newest-first (latest day on top) in both the
   gauges and the worklog groups. Worklog `j`/`k` navigation follows suit — down
   moves to older entries, up to newer — and rolls into the previous/next week at
