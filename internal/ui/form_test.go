@@ -31,6 +31,54 @@ func TestWorklogFormInputFromStartEnd(t *testing.T) {
 	}
 }
 
+func TestWorklogFormReducesRemainingEstimateOnCreate(t *testing.T) {
+	// A new worklog subtracts the logged time from the issue's remaining
+	// estimate, mirroring Jira's "reduce remaining estimate" behaviour.
+	issue := domain.Issue{ID: "1", RemainingEstimateSeconds: 4 * 3600}
+	f := newWorklogForm(issue, nil, "CORE", nil, time.Now(), "09:00", true, false)
+	f.startStr, f.endStr = "09:00", "10:30" // 90 minutes
+
+	in, err := f.input()
+	if err != nil {
+		t.Fatalf("input: %v", err)
+	}
+	if want := 4*3600 - 90*60; in.RemainingEstimateSeconds != want {
+		t.Errorf("RemainingEstimateSeconds = %d, want %d", in.RemainingEstimateSeconds, want)
+	}
+}
+
+func TestWorklogFormRemainingEstimateFlooredAtZero(t *testing.T) {
+	// Logging more time than remains floors the estimate at zero (never negative).
+	issue := domain.Issue{ID: "1", RemainingEstimateSeconds: 30 * 60}
+	f := newWorklogForm(issue, nil, "CORE", nil, time.Now(), "09:00", true, false)
+	f.startStr, f.endStr = "09:00", "11:00" // 120 minutes > 30 remaining
+
+	in, err := f.input()
+	if err != nil {
+		t.Fatalf("input: %v", err)
+	}
+	if in.RemainingEstimateSeconds != 0 {
+		t.Errorf("RemainingEstimateSeconds = %d, want 0", in.RemainingEstimateSeconds)
+	}
+}
+
+func TestWorklogFormPreservesRemainingEstimateOnEdit(t *testing.T) {
+	// Editing an existing worklog preserves the estimate as-is; the logged time
+	// was already deducted when the worklog was created, so re-deducting would
+	// double-count.
+	issue := domain.Issue{ID: "1", RemainingEstimateSeconds: 4 * 3600}
+	existing := &domain.Worklog{ID: 42, StartTime: "09:00:00", TimeSpentSeconds: 3600, StartDate: "2026-11-10", AccountKey: "CORE"}
+	f := newWorklogForm(issue, nil, "CORE", existing, time.Now(), "09:00", true, false)
+
+	in, err := f.input()
+	if err != nil {
+		t.Fatalf("input: %v", err)
+	}
+	if in.RemainingEstimateSeconds != 4*3600 {
+		t.Errorf("RemainingEstimateSeconds = %d, want %d (unchanged)", in.RemainingEstimateSeconds, 4*3600)
+	}
+}
+
 func TestWorklogFormDefaultsStartToNow(t *testing.T) {
 	// A new worklog defaults start to the given time and end to 5 minutes later.
 	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "16:05", true, false)

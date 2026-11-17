@@ -19,8 +19,9 @@ type Issue struct {
 	ProjectKey string
 	Status     string
 	// RemainingEstimateSeconds is the issue's current remaining estimate. Tempo
-	// requires it on every worklog when the project uses estimate tracking;
-	// sending the current value satisfies that and preserves the estimate.
+	// requires it on every worklog when the project uses estimate tracking. A new
+	// worklog sends this value minus the logged time (floored at zero) to reduce
+	// the estimate; an edit sends it unchanged to preserve it.
 	RemainingEstimateSeconds int
 	Pinned                   bool
 }

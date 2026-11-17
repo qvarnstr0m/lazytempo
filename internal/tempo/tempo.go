@@ -35,9 +35,10 @@ type WorklogInput struct {
 	StartTime        string
 	Description      string
 	AccountKey       string
-	// RemainingEstimateSeconds is sent as-is; Tempo requires it when the
-	// project uses estimate tracking. Pass the issue's current remaining
-	// estimate to preserve it.
+	// RemainingEstimateSeconds is sent as-is; Tempo requires it when the project
+	// uses estimate tracking. The caller decides the value: a new worklog passes
+	// the estimate already reduced by the logged time, an edit passes the current
+	// estimate unchanged.
 	RemainingEstimateSeconds int
 }
 

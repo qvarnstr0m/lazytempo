@@ -231,6 +231,18 @@ func (f *worklogForm) input() (tempo.WorklogInput, error) {
 	if err != nil {
 		return tempo.WorklogInput{}, err
 	}
+	// Auto-adjust the remaining estimate: subtract the logged time from the
+	// issue's current estimate on a new worklog, mirroring Jira's "reduce
+	// remaining estimate" behaviour. On an edit the time was already deducted
+	// when the worklog was created, so the estimate is preserved as-is to avoid
+	// double-counting. The estimate never goes below zero.
+	remaining := f.issue.RemainingEstimateSeconds
+	if f.editID == 0 {
+		remaining -= seconds
+		if remaining < 0 {
+			remaining = 0
+		}
+	}
 	return tempo.WorklogInput{
 		IssueID:                  f.issue.ID,
 		TimeSpentSeconds:         seconds,
@@ -238,6 +250,6 @@ func (f *worklogForm) input() (tempo.WorklogInput, error) {
 		StartTime:                f.startStr + ":00",
 		Description:              f.desc,
 		AccountKey:               f.accountKey,
-		RemainingEstimateSeconds: f.issue.RemainingEstimateSeconds,
+		RemainingEstimateSeconds: remaining,
 	}, nil
 }
