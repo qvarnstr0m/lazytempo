@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-18
+
+### Fixed
+- The in-flight load counter no longer drifts negative after startup: `Init` has
+  a value receiver, so its two load increments were discarded while their
+  completions still decremented. The count is now seeded in `New`, so the
+  `syncing…` indicator is accurate and background auto-sync (which only runs when
+  no load is in flight) is no longer silently blocked.
+
+### Added
+- The Details panel now shows an issue's time tracking — estimated (original
+  estimate), spent and remaining — read from Jira's `timeoriginalestimate`,
+  `timespent` and `timeestimate`. The block is hidden for issues without any
+  time tracking (e.g. when estimate tracking is off).
+- Background auto-sync: the app now periodically refreshes issues and worklogs
+  on its own (the same data as the manual `r` refresh), keeping remaining
+  estimates and the week view current without a keypress. Configurable via
+  `sync_interval` (default `5m`; env `LAZYTEMPO_SYNC_INTERVAL`); set `0` to
+  disable. The sync is skipped while a form or delete prompt is open, a search is
+  active, or a load is already in flight, so it never disrupts you.
+
 ## [0.2.0] - 2026-11-17
 
 ### Fixed
