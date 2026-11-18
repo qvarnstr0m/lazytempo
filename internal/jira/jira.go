@@ -112,6 +112,10 @@ type issueJSON struct {
 		} `json:"project"`
 		// TimeEstimate is the remaining estimate in seconds (null -> 0).
 		TimeEstimate int `json:"timeestimate"`
+		// TimeOriginalEstimate is the original estimate in seconds (null -> 0).
+		TimeOriginalEstimate int `json:"timeoriginalestimate"`
+		// TimeSpent is the total logged time in seconds (null -> 0).
+		TimeSpent int `json:"timespent"`
 	} `json:"fields"`
 }
 
@@ -121,7 +125,7 @@ func (c *HTTPClient) SearchIssues(ctx context.Context, jql string, maxResults in
 	if maxResults <= 0 {
 		maxResults = 50
 	}
-	fields := []string{"summary", "status", "project", "timeestimate"}
+	fields := []string{"summary", "status", "project", "timeestimate", "timeoriginalestimate", "timespent"}
 	var issues []domain.Issue
 	token := ""
 	for {
@@ -150,6 +154,8 @@ func (c *HTTPClient) SearchIssues(ctx context.Context, jql string, maxResults in
 				ProjectID:                i.Fields.Project.ID,
 				ProjectKey:               i.Fields.Project.Key,
 				Status:                   i.Fields.Status.Name,
+				OriginalEstimateSeconds:  i.Fields.TimeOriginalEstimate,
+				TimeSpentSeconds:         i.Fields.TimeSpent,
 				RemainingEstimateSeconds: i.Fields.TimeEstimate,
 			})
 		}

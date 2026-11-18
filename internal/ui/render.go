@@ -392,6 +392,14 @@ func (m Model) renderDetails(width, height int) string {
 	b.WriteString(m.theme.Text.Render(wrap(iss.Summary, width-2)) + "\n\n")
 	b.WriteString(m.theme.Muted.Render("Project: ") + m.theme.Text.Render(iss.ProjectKey) + "\n")
 	b.WriteString(m.theme.Muted.Render("Status:  ") + m.theme.Text.Render(iss.Status) + "\n")
+	// Time tracking, shown only when the issue carries any (estimate tracking may
+	// be off, leaving all three at zero).
+	if iss.OriginalEstimateSeconds > 0 || iss.TimeSpentSeconds > 0 || iss.RemainingEstimateSeconds > 0 {
+		b.WriteString("\n")
+		b.WriteString(m.theme.Muted.Render("Estimated: ") + m.theme.Text.Render(domain.FormatDuration(iss.OriginalEstimateSeconds)) + "\n")
+		b.WriteString(m.theme.Muted.Render("Spent:     ") + m.theme.Text.Render(domain.FormatDuration(iss.TimeSpentSeconds)) + "\n")
+		b.WriteString(m.theme.Muted.Render("Remaining: ") + m.theme.Text.Render(domain.FormatDuration(iss.RemainingEstimateSeconds)) + "\n")
+	}
 	if last := m.cache.LastAccountForIssue(iss.ID); last != "" {
 		b.WriteString(m.theme.Muted.Render("Last account: ") + m.theme.Text.Render(last) + "\n")
 	}

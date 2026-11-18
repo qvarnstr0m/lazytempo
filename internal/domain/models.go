@@ -18,6 +18,12 @@ type Issue struct {
 	ProjectID  string // numeric project id
 	ProjectKey string
 	Status     string
+	// OriginalEstimateSeconds is the issue's original estimate (Jira
+	// `timeoriginalestimate`); 0 when unset or estimate tracking is off.
+	OriginalEstimateSeconds int
+	// TimeSpentSeconds is the total time logged on the issue (Jira `timespent`);
+	// 0 when none is logged.
+	TimeSpentSeconds int
 	// RemainingEstimateSeconds is the issue's current remaining estimate. Tempo
 	// requires it on every worklog when the project uses estimate tracking. A new
 	// worklog sends this value minus the logged time (floored at zero) to reduce

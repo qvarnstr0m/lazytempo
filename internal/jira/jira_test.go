@@ -58,7 +58,7 @@ func TestSearchIssues(t *testing.T) {
 		}
 		resp := `{
 			"issues": [
-				{"id":"10991","key":"PROJ-123","fields":{"summary":"Fix bug","status":{"name":"In Progress"},"project":{"id":"100","key":"PROJ"}}},
+				{"id":"10991","key":"PROJ-123","fields":{"summary":"Fix bug","status":{"name":"In Progress"},"project":{"id":"100","key":"PROJ"},"timeoriginalestimate":28800,"timespent":10800,"timeestimate":18000}},
 				{"id":"10992","key":"PROJ-124","fields":{"summary":"Add feature","status":{"name":"To Do"},"project":{"id":"100","key":"PROJ"}}}
 			],
 			"isLast": true
@@ -80,6 +80,14 @@ func TestSearchIssues(t *testing.T) {
 	}
 	if issues[0].Summary != "Fix bug" || issues[0].Status != "In Progress" {
 		t.Errorf("unexpected fields: %+v", issues[0])
+	}
+	if issues[0].OriginalEstimateSeconds != 28800 || issues[0].TimeSpentSeconds != 10800 || issues[0].RemainingEstimateSeconds != 18000 {
+		t.Errorf("unexpected time tracking: orig=%d spent=%d remaining=%d",
+			issues[0].OriginalEstimateSeconds, issues[0].TimeSpentSeconds, issues[0].RemainingEstimateSeconds)
+	}
+	// An issue without time-tracking fields parses with zero values (block hidden).
+	if issues[1].OriginalEstimateSeconds != 0 || issues[1].TimeSpentSeconds != 0 || issues[1].RemainingEstimateSeconds != 0 {
+		t.Errorf("expected zero time tracking for second issue, got %+v", issues[1])
 	}
 }
 
