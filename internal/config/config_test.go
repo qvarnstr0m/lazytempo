@@ -1,6 +1,38 @@
 package config
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
+
+func TestAutoSyncInterval(t *testing.T) {
+	if got := Default().AutoSyncInterval(); got != 5*time.Minute {
+		t.Errorf("default AutoSyncInterval = %v, want 5m", got)
+	}
+	cases := map[string]time.Duration{
+		"5m":       5 * time.Minute,
+		"2m":       2 * time.Minute,
+		"45s":      45 * time.Second,
+		"10s":      30 * time.Second, // clamped up to the 30s minimum
+		"0":        0,                // disabled
+		"-1m":      0,                // non-positive disables
+		"":         0,                // empty disables
+		"nonsense": 0,                // unparseable disables
+	}
+	for in, want := range cases {
+		if got := (Config{SyncInterval: in}).AutoSyncInterval(); got != want {
+			t.Errorf("AutoSyncInterval(%q) = %v, want %v", in, got, want)
+		}
+	}
+
+	// env override
+	t.Setenv("LAZYTEMPO_SYNC_INTERVAL", "90s")
+	c := Default()
+	c.applyEnv()
+	if got := c.AutoSyncInterval(); got != 90*time.Second {
+		t.Errorf("env override AutoSyncInterval = %v, want 90s", got)
+	}
+}
 
 func TestRequireAccountDefaultsTrue(t *testing.T) {
 	if !Default().RequireAccount {

@@ -236,6 +236,69 @@ func TestSearchLettersStillType(t *testing.T) {
 	}
 }
 
+func TestStartupLoadingCounterReturnsToZero(t *testing.T) {
+	// Regression: Init has a value receiver, so its load increments can't persist
+	// and must be seeded in New via startupLoads. If the seed is wrong the counter
+	// drifts (negative), which silently disables auto-sync (canAutoSync needs
+	// loading == 0). Drive the startup message cascade and assert it settles at 0.
+	j := &mockJira{accountID: "acc", displayName: "Me",
+		issues: []domain.Issue{{ID: "1", Key: "A-1", ProjectID: "100"}}}
+	svc, c := newTestService(j, &mockTempo{})
+	m := New(svc, c, config.Default())
+	if m.loading != startupLoads {
+		t.Fatalf("New seeded loading = %d, want %d", m.loading, startupLoads)
+	}
+
+	// Feed each completion (and the follow-ups it spawns) as the runtime would.
+	feed := func(msg tea.Msg) {
+		res, _ := m.Update(msg)
+		m = res.(Model)
+	}
+	feed(issuesLoadedMsg{issues: j.issues})       // spawns account-links load
+	feed(referenceLoadedMsg{accountID: "acc"})    // spawns worklogs + seed loads
+	feed(accountLinksLoadedMsg{projectID: "100"}) // links done
+	feed(worklogsLoadedMsg{from: m.weekStart})    // worklogs done (none missing)
+	feed(worklogIssuesLoadedMsg{})                // seed done
+
+	if m.loading != 0 {
+		t.Errorf("after startup, loading = %d, want 0", m.loading)
+	}
+	if !m.canAutoSync() {
+		t.Errorf("auto-sync should be allowed at idle (loading=%d)", m.loading)
+	}
+}
+
+func TestAutoSyncTriggersRefreshWhenIdle(t *testing.T) {
+	// At idle (no form/search/delete, nothing loading), a sync tick issues the
+	// three refresh loads and reschedules the next tick.
+	m := Model{cfg: config.Config{SyncInterval: "30s"}}
+	res, cmd := m.Update(autoSyncMsg(time.Now()))
+	mm := res.(Model)
+	if mm.loading != 3 {
+		t.Errorf("loading = %d, want 3 (issues + worklogs + seed)", mm.loading)
+	}
+	if cmd == nil {
+		t.Error("expected a batch of load + reschedule commands")
+	}
+	if mm.status != "auto-syncing…" {
+		t.Errorf("status = %q, want \"auto-syncing…\"", mm.status)
+	}
+}
+
+func TestAutoSyncSkippedDuringInteraction(t *testing.T) {
+	// While a form is open the refresh is skipped, but the tick is still
+	// rescheduled so sync resumes once the user is done.
+	m := Model{cfg: config.Config{SyncInterval: "30s"}, form: &worklogForm{}}
+	res, cmd := m.Update(autoSyncMsg(time.Now()))
+	mm := res.(Model)
+	if mm.loading != 0 {
+		t.Errorf("loading = %d, want 0 (refresh skipped)", mm.loading)
+	}
+	if cmd == nil {
+		t.Error("expected the reschedule command even when the refresh is skipped")
+	}
+}
+
 func TestApplySortModes(t *testing.T) {
 	issues := []domain.Issue{
 		{ID: "1", Key: "A-1"},

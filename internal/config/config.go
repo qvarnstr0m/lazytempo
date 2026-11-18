@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -41,6 +42,11 @@ type Config struct {
 	// TimeFormat controls how clock times are shown and entered: "eu" (24-hour,
 	// e.g. 16:05, the default) or "us" (12-hour, e.g. 4:05 PM).
 	TimeFormat string `toml:"time_format"`
+	// SyncInterval is how often the app automatically refreshes issues and
+	// worklogs in the background, as a Go duration (e.g. "5m", "30s"). The default
+	// is 5 minutes; "0" (or any non-positive value) disables auto-sync. When
+	// enabled it is clamped to a 30s minimum to avoid hammering the APIs.
+	SyncInterval string `toml:"sync_interval"`
 }
 
 // defaultJQL lists issues you are involved with: assigned to you, logged time
@@ -54,6 +60,7 @@ func Default() Config {
 		TargetHoursPerDay: 8,
 		RequireAccount:    true,
 		TimeFormat:        "eu",
+		SyncInterval:      "5m",
 	}
 }
 
@@ -121,6 +128,27 @@ func (c *Config) applyEnv() {
 	if v := os.Getenv("LAZYTEMPO_TIME_FORMAT"); v != "" {
 		c.TimeFormat = v
 	}
+	if v := os.Getenv("LAZYTEMPO_SYNC_INTERVAL"); v != "" {
+		c.SyncInterval = v
+	}
+}
+
+// AutoSyncInterval returns how often to auto-refresh in the background, or 0 to
+// disable it. A non-positive or unparseable value disables auto-sync; a positive
+// value shorter than 30s is clamped up to 30s to avoid hammering the APIs.
+func (c Config) AutoSyncInterval() time.Duration {
+	s := strings.TrimSpace(c.SyncInterval)
+	if s == "" {
+		return 0
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil || d <= 0 {
+		return 0
+	}
+	if d < 30*time.Second {
+		return 30 * time.Second
+	}
+	return d
 }
 
 // Hour12 reports whether clock times should use 12-hour (US) format.
@@ -216,6 +244,11 @@ tempo_api_token = "your-tempo-api-token"
 # Clock time display/entry: "eu" (24-hour, e.g. 16:05, default) or "us" (12-hour,
 # e.g. 4:05 PM). Worklogs are stored in 24-hour time regardless.
 # time_format = "eu"
+
+# How often to auto-refresh issues and worklogs in the background (Go duration,
+# e.g. "5m", "2m", "30s"). Default is 5m; set "0" to disable. Enabled values are
+# clamped to a 30s minimum. Env override: LAZYTEMPO_SYNC_INTERVAL.
+# sync_interval = "5m"
 
 # Override the Tempo API base URL (default: https://api.tempo.io/4). Point it at
 # a self-hosted proxy or a local mock, e.g. for integration tests or recording a

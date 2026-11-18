@@ -85,6 +85,10 @@ tempo_api_token = "your-tempo-api-token"
 # Every worklog must have a Tempo account (default: true). Set false for Tempo
 # instances that don't use accounts, or to log before a relevant account exists.
 # require_account = true
+
+# How often to auto-refresh issues and worklogs in the background (Go duration,
+# e.g. "5m", "2m", "30s"). Default 5m; set "0" to disable. Minimum 30s.
+# sync_interval = "5m"
 ```
 
 Environment overrides:
@@ -98,6 +102,7 @@ Environment overrides:
 | `LAZYTEMPO_MY_ISSUES_JQL` | `my_issues_jql` |
 | `LAZYTEMPO_REQUIRE_ACCOUNT` | `require_account` |
 | `LAZYTEMPO_TIME_FORMAT` | `time_format` |
+| `LAZYTEMPO_SYNC_INTERVAL` | `sync_interval` |
 
 ### Getting tokens
 

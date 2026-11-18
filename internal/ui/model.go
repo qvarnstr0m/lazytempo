@@ -54,6 +54,10 @@ type searchDebounceMsg struct {
 	query string
 }
 
+// autoSyncMsg fires on the background-sync interval, prompting a refresh of
+// issues and worklogs (same data as the manual `r` refresh).
+type autoSyncMsg time.Time
+
 // pendingSelect records where the worklog cursor should land once a newly
 // requested week's worklogs have loaded (used when up/down crosses a week).
 // Days are shown chronologically, so "top of week" is the earliest day
@@ -155,8 +159,17 @@ func New(svc *Service, c *cache.Cache, cfg config.Config) Model {
 		weekStart:   weekStart(now),
 		selectedDay: todayIndex(now),
 		issues:      c.Issues(),
+		loading:     startupLoads, // Init issues this many loads; see startupLoads.
 	}
 	m.rebuildDays(nil)
+	// Surface the resolved auto-sync interval at startup so it's clear whether
+	// background sync is on (and at what cadence) — otherwise the feature is
+	// invisible until something visibly changes.
+	if d := cfg.AutoSyncInterval(); d > 0 {
+		m.setStatus(fmt.Sprintf("auto-sync every %s", d))
+	} else {
+		m.setStatus("auto-sync off")
+	}
 	return m
 }
 
@@ -165,13 +178,43 @@ func todayIndex(now time.Time) int {
 	return idx
 }
 
-// Init starts background loads and the spinner.
+// startupLoads is the number of loads Init kicks off (LoadReference +
+// LoadIssues). New seeds m.loading with this count because Init has a value
+// receiver and returns only a Cmd: any m.startLoad() there would increment a
+// discarded copy, yet the matching completion messages still decrement, drifting
+// the counter negative. Seeding it here keeps the in-flight counter accurate.
+const startupLoads = 2
+
+// Init starts background loads and the spinner. The two loads are counted via
+// New's startupLoads seed, not startLoad, since Init cannot persist a mutation.
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
-		m.startLoad(m.svc.LoadReference()),
-		m.startLoad(m.svc.LoadIssues()),
+		m.svc.LoadReference(),
+		m.svc.LoadIssues(),
+		m.autoSyncCmd(),
 	)
+}
+
+// autoSyncCmd schedules the next background-sync tick, or returns nil when
+// auto-sync is disabled in config.
+func (m Model) autoSyncCmd() tea.Cmd {
+	d := m.cfg.AutoSyncInterval()
+	if d <= 0 {
+		return nil
+	}
+	return tea.Tick(d, func(t time.Time) tea.Msg { return autoSyncMsg(t) })
+}
+
+// canAutoSync reports whether a background refresh is safe to run right now. It
+// is skipped while the user is mid-interaction (a form or delete prompt is open,
+// or a search is active) or while a load is already in flight, so the sync never
+// disrupts the user or piles up requests. The tick is always rescheduled.
+func (m Model) canAutoSync() bool {
+	return m.form == nil &&
+		!m.confirmingDelete &&
+		!m.searching &&
+		m.loading == 0
 }
 
 // startLoad increments the in-flight counter and returns the command. Because
@@ -200,6 +243,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
+
+	case autoSyncMsg:
+		// Always reschedule the next tick; only refresh when it's safe and idle.
+		cmds := []tea.Cmd{m.autoSyncCmd()}
+		if m.canAutoSync() {
+			m.setStatus("auto-syncing…")
+			to := time.Now().Format(dateLayout)
+			from := time.Now().AddDate(0, 0, -30).Format(dateLayout)
+			cmds = append(cmds,
+				m.startLoad(m.svc.LoadIssues()),
+				m.startLoad(m.svc.LoadWorklogs(m.weekStart)),
+				m.startLoad(m.svc.SeedIssuesFromWorklogs(from, to)),
+			)
+		}
+		return m, tea.Batch(cmds...)
 
 	case referenceLoadedMsg:
 		m.loading--
