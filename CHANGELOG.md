@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Press `y` in the Week panel to clone the selected worklog: the create form
+  opens for the same issue with its account and description prefilled, dated
+  today with the usual current-time default.
+
 ## [0.3.0] - 2026-11-18
 
 ### Fixed

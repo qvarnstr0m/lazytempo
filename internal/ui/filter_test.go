@@ -451,3 +451,40 @@ func TestFilterIssuesNoMatch(t *testing.T) {
 		t.Errorf("expected no matches, got %+v", got)
 	}
 }
+
+func TestWeekCloneWorklogPrefillsForm(t *testing.T) {
+	m := weekNavModel()
+	m.cfg = config.Default()
+	m.cfg.RequireAccount = true
+	m.cache, _ = cache.Open() // in-memory only; nothing is saved
+	m.issues = []domain.Issue{{ID: "10", Key: "ABC-1", ProjectID: "P1"}}
+	accts := []domain.Account{{Key: "AAA", ID: 1, Name: "A"}, {Key: "BBB", ID: 2, Name: "B"}}
+	m.cache.SetReference("", "", accts, nil)
+	// AAA is the project default; the clone must still keep BBB.
+	m.cache.SetAccountLinks("P1", []domain.AccountLink{
+		{AccountID: 1, ProjectID: "P1", Default: true},
+		{AccountID: 2, ProjectID: "P1"},
+	})
+	m.days[0].Worklogs = []domain.Worklog{{
+		ID: 7, IssueID: "10", AccountKey: "BBB", Description: "standup",
+		StartDate: "2026-11-09", StartTime: "08:00:00", TimeSpentSeconds: 3600,
+	}}
+	m.selectedDay, m.worklogCursor = 0, 0
+
+	res, _ := m.handleWeekKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	mm := res.(Model)
+	f := mm.form
+	if f == nil {
+		t.Fatal("y did not open the worklog form")
+	}
+	if f.editID != 0 {
+		t.Errorf("editID = %d, want 0 (clone creates a new worklog)", f.editID)
+	}
+	if f.issue.ID != "10" || f.accountKey != "BBB" || f.desc != "standup" {
+		t.Errorf("prefill = issue %q account %q desc %q, want 10/BBB/standup", f.issue.ID, f.accountKey, f.desc)
+	}
+	today := domain.FormatDateDisplay(time.Now().Format(dateLayout), false)
+	if f.dateStr != today {
+		t.Errorf("date = %q, want today %q", f.dateStr, today)
+	}
+}

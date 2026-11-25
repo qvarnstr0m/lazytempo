@@ -75,6 +75,10 @@ const (
 type formRequest struct {
 	issue    domain.Issue
 	existing *domain.Worklog
+	// template, when set, is a worklog being cloned: a new worklog is created
+	// with its account and description prefilled (date and time use the normal
+	// new-worklog defaults).
+	template *domain.Worklog
 	// accountOnly means "change account" — same as edit but conceptually focused.
 	accountOnly bool
 }
@@ -595,6 +599,8 @@ func (m Model) handleWeekKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.requestAddWorklog()
 	case key.Matches(msg, m.keys.Edit), key.Matches(msg, m.keys.Account):
 		return m.requestEditWorklog()
+	case key.Matches(msg, m.keys.Clone):
+		return m.requestCloneWorklog()
 	case key.Matches(msg, m.keys.Delete):
 		if m.selectedWorklog() != nil {
 			m.confirmingDelete = true
@@ -720,6 +726,19 @@ func (m Model) requestAddWorklog() (tea.Model, tea.Cmd) {
 
 // requestEditWorklog starts the flow to edit the selected worklog.
 func (m Model) requestEditWorklog() (tea.Model, tea.Cmd) {
+	return m.requestFromSelectedWorklog(false)
+}
+
+// requestCloneWorklog starts the flow to create a new worklog prefilled with
+// the selected worklog's issue, account and description. The date defaults to
+// today and the time to the current time, as for any new worklog.
+func (m Model) requestCloneWorklog() (tea.Model, tea.Cmd) {
+	return m.requestFromSelectedWorklog(true)
+}
+
+// requestFromSelectedWorklog opens the form for the selected worklog, either
+// editing it or (clone) creating a new one based on it.
+func (m Model) requestFromSelectedWorklog(clone bool) (tea.Model, tea.Cmd) {
 	wl := m.selectedWorklog()
 	if wl == nil {
 		m.setError("no worklog selected")
@@ -731,7 +750,11 @@ func (m Model) requestEditWorklog() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	w := *wl
-	m.pending = &formRequest{issue: *iss, existing: &w}
+	if clone {
+		m.pending = &formRequest{issue: *iss, template: &w}
+	} else {
+		m.pending = &formRequest{issue: *iss, existing: &w}
+	}
 	return m, m.ensureLinksAndOpen(iss.ProjectID)
 }
 
@@ -765,12 +788,27 @@ func (m *Model) openPendingForm() tea.Cmd {
 	lastUsed := m.cache.LastAccountForIssue(req.issue.ID)
 	defaultKey := domain.DefaultAccountKey(projectID, m.cache.Accounts(), links)
 	preselect := domain.PreselectAccount(selectable, lastUsed, defaultKey)
+	prefillDesc := ""
+	if t := req.template; t != nil {
+		prefillDesc = t.Description
+		// Keep the cloned worklog's account when it is still selectable (or
+		// when it had none and accounts are optional).
+		if t.AccountKey == "" && !m.cfg.RequireAccount {
+			preselect = ""
+		}
+		for _, a := range selectable {
+			if a.Key == t.AccountKey {
+				preselect = t.AccountKey
+				break
+			}
+		}
+	}
 
 	// A new worklog always defaults to today's date and the current time.
 	now := time.Now()
 	defaultDate := now
 	defaultStart := domain.RoundClock(now.Hour()*60+now.Minute(), clockStepMinutes)
-	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, defaultDate, defaultStart, m.cfg.RequireAccount, m.cfg.Hour12())
+	m.form = newWorklogForm(req.issue, selectable, preselect, req.existing, prefillDesc, defaultDate, defaultStart, m.cfg.RequireAccount, m.cfg.Hour12())
 	m.form.form = m.form.form.WithWidth(formContentWidth(m.width)).WithHeight(formContentHeight(m.height))
 	return m.form.form.Init()
 }

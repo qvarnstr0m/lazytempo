@@ -10,7 +10,7 @@ import (
 func TestWorklogFormInputFromStartEnd(t *testing.T) {
 	issue := domain.Issue{ID: "10119", Key: "CORE-5", ProjectID: "200"}
 	accounts := []domain.Account{{ID: 1, Key: "CORE", Name: "Acme", Status: "OPEN"}}
-	f := newWorklogForm(issue, accounts, "CORE", nil, time.Date(2026, 11, 12, 0, 0, 0, 0, time.Local), "09:00", true, false)
+	f := newWorklogForm(issue, accounts, "CORE", nil, "", time.Date(2026, 11, 12, 0, 0, 0, 0, time.Local), "09:00", true, false)
 
 	// Simulate the user picking 16:05–17:35 in the dropdowns.
 	f.startStr = "16:05"
@@ -35,7 +35,7 @@ func TestWorklogFormReducesRemainingEstimateOnCreate(t *testing.T) {
 	// A new worklog subtracts the logged time from the issue's remaining
 	// estimate, mirroring Jira's "reduce remaining estimate" behaviour.
 	issue := domain.Issue{ID: "1", RemainingEstimateSeconds: 4 * 3600}
-	f := newWorklogForm(issue, nil, "CORE", nil, time.Now(), "09:00", true, false)
+	f := newWorklogForm(issue, nil, "CORE", nil, "", time.Now(), "09:00", true, false)
 	f.startStr, f.endStr = "09:00", "10:30" // 90 minutes
 
 	in, err := f.input()
@@ -50,7 +50,7 @@ func TestWorklogFormReducesRemainingEstimateOnCreate(t *testing.T) {
 func TestWorklogFormRemainingEstimateFlooredAtZero(t *testing.T) {
 	// Logging more time than remains floors the estimate at zero (never negative).
 	issue := domain.Issue{ID: "1", RemainingEstimateSeconds: 30 * 60}
-	f := newWorklogForm(issue, nil, "CORE", nil, time.Now(), "09:00", true, false)
+	f := newWorklogForm(issue, nil, "CORE", nil, "", time.Now(), "09:00", true, false)
 	f.startStr, f.endStr = "09:00", "11:00" // 120 minutes > 30 remaining
 
 	in, err := f.input()
@@ -68,7 +68,7 @@ func TestWorklogFormPreservesRemainingEstimateOnEdit(t *testing.T) {
 	// double-count.
 	issue := domain.Issue{ID: "1", RemainingEstimateSeconds: 4 * 3600}
 	existing := &domain.Worklog{ID: 42, StartTime: "09:00:00", TimeSpentSeconds: 3600, StartDate: "2026-11-10", AccountKey: "CORE"}
-	f := newWorklogForm(issue, nil, "CORE", existing, time.Now(), "09:00", true, false)
+	f := newWorklogForm(issue, nil, "CORE", existing, "", time.Now(), "09:00", true, false)
 
 	in, err := f.input()
 	if err != nil {
@@ -81,7 +81,7 @@ func TestWorklogFormPreservesRemainingEstimateOnEdit(t *testing.T) {
 
 func TestWorklogFormDefaultsStartToNow(t *testing.T) {
 	// A new worklog defaults start to the given time and end to 5 minutes later.
-	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "16:05", true, false)
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, "", time.Now(), "16:05", true, false)
 	if f.startStr != "16:05" {
 		t.Errorf("start = %q, want 16:05", f.startStr)
 	}
@@ -89,7 +89,7 @@ func TestWorklogFormDefaultsStartToNow(t *testing.T) {
 		t.Errorf("end = %q, want 16:10", f.endStr)
 	}
 	// Late in the day, the end clamps to the last slot but stays after start.
-	f = newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "23:40", true, false)
+	f = newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, "", time.Now(), "23:40", true, false)
 	if _, err := domain.SecondsBetween(f.startStr, f.endStr); err != nil {
 		t.Errorf("late-day default produced invalid range %s–%s: %v", f.startStr, f.endStr, err)
 	}
@@ -103,7 +103,7 @@ func TestWorklogFormPreselectedAccountFirst(t *testing.T) {
 		{ID: 2, Key: "BBB", Name: "Bbb", Status: "OPEN"},
 		{ID: 3, Key: "CCC", Name: "Ccc", Status: "OPEN"},
 	}
-	f := newWorklogForm(domain.Issue{ID: "1"}, accts, "CCC", nil, time.Now(), "09:00", true, false)
+	f := newWorklogForm(domain.Issue{ID: "1"}, accts, "CCC", nil, "", time.Now(), "09:00", true, false)
 	// The account field is the first field; its first option should be CCC.
 	if f.accountKey != "CCC" {
 		t.Fatalf("preselect = %q, want CCC", f.accountKey)
@@ -128,7 +128,7 @@ func indexOf(s, sub string) int {
 
 func TestWorklogFormOptionalAccount(t *testing.T) {
 	// With requireAccount=false, no accounts and an empty selection are allowed.
-	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "", nil, time.Now(), "09:00", false, false)
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "", nil, "", time.Now(), "09:00", false, false)
 	f.accountKey = "" // "(no account)"
 	in, err := f.input()
 	if err != nil {
@@ -140,7 +140,7 @@ func TestWorklogFormOptionalAccount(t *testing.T) {
 }
 
 func TestWorklogFormRequiresAccountWhenSet(t *testing.T) {
-	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "", nil, time.Now(), "09:00", true, false)
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "", nil, "", time.Now(), "09:00", true, false)
 	f.accountKey = ""
 	f.startStr, f.endStr = "09:00", "10:00"
 	if _, err := f.input(); err == nil {
@@ -149,7 +149,7 @@ func TestWorklogFormRequiresAccountWhenSet(t *testing.T) {
 }
 
 func TestWorklogFormRejectsBadRange(t *testing.T) {
-	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, time.Now(), "09:00", true, false)
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", nil, "", time.Now(), "09:00", true, false)
 	f.startStr = "10:00"
 	f.endStr = "09:00" // end before start
 	if _, err := f.input(); err == nil {
@@ -165,7 +165,7 @@ func TestWorklogFormEditDerivesRange(t *testing.T) {
 		StartDate:        "2026-11-10",
 		AccountKey:       "CORE",
 	}
-	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", existing, time.Now(), "09:00", true, false)
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", existing, "", time.Now(), "09:00", true, false)
 	if f.editID != 42 {
 		t.Errorf("editID = %d, want 42", f.editID)
 	}
@@ -187,7 +187,7 @@ func TestWorklogFormEditDerivesRange(t *testing.T) {
 
 func TestWorklogFormUSDate(t *testing.T) {
 	existing := &domain.Worklog{StartTime: "09:00:00", TimeSpentSeconds: 3600, StartDate: "2026-11-13", AccountKey: "CORE"}
-	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", existing, time.Now(), "09:00", true, true)
+	f := newWorklogForm(domain.Issue{ID: "1"}, nil, "CORE", existing, "", time.Now(), "09:00", true, true)
 	if f.dateStr != "11/13/2026" {
 		t.Errorf("US date display = %q, want 11/13/2026", f.dateStr)
 	}

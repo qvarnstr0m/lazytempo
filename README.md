@@ -123,6 +123,7 @@ Tokens are never logged or printed.
 | `H` / `L` | previous / next week |
 | `a` | add worklog to selected issue |
 | `e` | edit selected worklog |
+| `y` | clone selected worklog (new worklog today with same issue, account and description) |
 | `d` | delete worklog (with confirmation) |
 | `c` | change account on selected worklog |
 | `/` | free-text search issues (see below) |

@@ -18,6 +18,7 @@ type KeyMap struct {
 	Add       key.Binding
 	Edit      key.Binding
 	Delete    key.Binding
+	Clone     key.Binding
 	Account   key.Binding
 	Search    key.Binding
 	Sort      key.Binding
@@ -43,6 +44,7 @@ func DefaultKeyMap() KeyMap {
 		Add:       key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "add worklog")),
 		Edit:      key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
 		Delete:    key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
+		Clone:     key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "clone worklog")),
 		Account:   key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "change account")),
 		Search:    key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "search issues")),
 		Sort:      key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "sort issues")),
@@ -63,7 +65,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PrevDay, k.NextDay, k.PrevWeek, k.NextWeek},
 		{k.NextPanel, k.Panel1, k.Search, k.Sort, k.Pin, k.Refresh},
-		{k.Add, k.Edit, k.Delete, k.Account},
+		{k.Add, k.Edit, k.Clone, k.Delete, k.Account},
 		{k.Help, k.Quit},
 	}
 }
