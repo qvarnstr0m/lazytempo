@@ -558,9 +558,16 @@ func (m Model) weekMoveUp() (tea.Model, tea.Cmd) {
 
 func (m Model) handleWeekKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
-	case key.Matches(msg, m.keys.Down): // j / down
+	// In the worklog container j/k are inverted relative to the issues list:
+	// j moves up the chronological list, k moves down. Arrow keys keep their
+	// natural direction.
+	case msg.String() == "j":
+		return m.weekMoveUp()
+	case msg.String() == "k":
 		return m.weekMoveDown()
-	case key.Matches(msg, m.keys.Up): // k / up
+	case key.Matches(msg, m.keys.Down): // down arrow
+		return m.weekMoveDown()
+	case key.Matches(msg, m.keys.Up): // up arrow
 		return m.weekMoveUp()
 	case key.Matches(msg, m.keys.NextDay):
 		if m.selectedDay < 6 {

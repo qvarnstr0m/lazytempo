@@ -153,17 +153,17 @@ func TestWeekJK(t *testing.T) {
 	m := weekNavModel() // Mon has 2 worklogs
 	m.selectedDay, m.worklogCursor = 0, 0
 
-	// j moves down within the day (same direction as the issue list).
-	mm := rune_(m, 'j')
+	// In the worklog container j/k are inverted: k moves down within the day.
+	mm := rune_(m, 'k')
 	if mm.worklogCursor != 1 {
-		t.Fatalf("j -> cursor %d, want 1 (down)", mm.worklogCursor)
+		t.Fatalf("k -> cursor %d, want 1 (down)", mm.worklogCursor)
 	}
-	// k moves back up.
-	mm = rune_(mm, 'k')
+	// j moves back up.
+	mm = rune_(mm, 'j')
 	if mm.worklogCursor != 0 {
-		t.Fatalf("k -> cursor %d, want 0 (up)", mm.worklogCursor)
+		t.Fatalf("j -> cursor %d, want 0 (up)", mm.worklogCursor)
 	}
-	// Down arrow matches j.
+	// Down arrow keeps its natural direction (moves down).
 	mm = weekKey(m, tea.KeyDown)
 	if mm.worklogCursor != 1 {
 		t.Errorf("down arrow -> cursor %d, want 1", mm.worklogCursor)
